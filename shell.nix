@@ -7,6 +7,14 @@ let
     version = cargo-aoc-src.version;
     src = cargo-aoc-src;
     cargoLock.lockFile = "${cargo-aoc-src}/Cargo.lock";
+
+    buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin
+      (with pkgs.darwin.apple_sdk.frameworks; [
+        CoreServices
+        SystemConfiguration
+      ]);
+
+    nativeBuildInputs = pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.pkg-config;
   };
 in
 
