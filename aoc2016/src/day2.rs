@@ -1,5 +1,6 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
+#[derive(Debug, Clone, Copy)]
 enum Dir {
     U,
     D,
@@ -37,9 +38,9 @@ fn part1(input: &Lines) -> String {
             digits.last().copied().unwrap_or((1, 1)),
             |(x, y), dir| match dir {
                 Dir::U => (x, if y > 0 { y - 1 } else { 0 }),
-                Dir::D => (x, if y < 3 { y + 1 } else { 3 }),
+                Dir::D => (x, if y < 2 { y + 1 } else { 2 }),
                 Dir::L => (if x > 0 { x - 1 } else { 0 }, y),
-                Dir::R => (if x < 3 { x + 1 } else { 3 }, y),
+                Dir::R => (if x < 2 { x + 1 } else { 2 }, y),
             },
         );
         digits.push(new_digit);
