@@ -28,8 +28,21 @@ fn part1(input: &[u32]) -> u32 {
 }
 
 #[aoc(day1, part2)]
-fn part2(input: &[u32]) -> String {
-    todo!()
+fn part2(input: &[u32]) -> u32 {
+    //dbg!(input);
+    input
+        .iter()
+        .enumerate()
+        .filter(|(i, d)| {
+            // Index of element halfway around the circular array
+            let i2 = (i + (input.len() / 2)) % input.len();
+            **d == input[i2]
+        })
+        .map(|(_, d)| d)
+        //.inspect(|x| {
+        //    dbg!(x);
+        //})
+        .sum()
 }
 
 #[cfg(test)]
@@ -47,6 +60,16 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        for (input, expected) in [
+            ("1212", 6),
+            ("1221", 0),
+            ("123425", 4),
+            ("123123", 12),
+            ("12131415", 4),
+        ] {
+            //eprintln!();
+            //eprintln!("---TEST---");
+            assert_eq!(part2(&parse(input)), expected);
+        }
     }
 }
