@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use aoc_runner_derive::{aoc, aoc_generator};
 
 #[aoc_generator(day2)]
@@ -35,8 +37,25 @@ fn part1(ids: &[String]) -> u32 {
 }
 
 #[aoc(day2, part2)]
-fn part2(input: &[String]) -> String {
-    todo!()
+fn part2(ids: &[String]) -> String {
+    for id1 in ids {
+        for id2 in ids {
+            if id1 == id2 {
+                continue;
+            }
+
+            let zipped = || zip(id1.chars(), id2.chars());
+
+            // compare the 2 ids char by char
+            let diff_count = zipped().filter(|(c1, c2)| c1 != c2).count();
+
+            if diff_count == 1 {
+                return zipped().filter(|(c1, c2)| c1 == c2).map(|t| t.0).collect();
+            }
+        }
+    }
+
+    String::new()
 }
 
 #[cfg(test)]
@@ -61,6 +80,17 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "abcde
+                 fghij
+                 klmno
+                 pqrst
+                 fguij
+                 axcye
+                 wvxyz"
+            )),
+            "fgij"
+        );
     }
 }
