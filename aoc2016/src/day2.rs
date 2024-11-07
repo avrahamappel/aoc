@@ -8,9 +8,101 @@ enum Dir {
     L,
 }
 
-type Digit = (usize, usize);
 type Dirs = Vec<Dir>;
 type Lines = Vec<Dirs>;
+type Key = char;
+
+struct Keypad {
+    ln_len: usize,
+    vec: Vec<Key>,
+}
+
+impl Keypad {
+    fn new(s: &str, ln_len: usize) -> Self {
+        let vec = s
+            .lines()
+            .filter(|l| !l.is_empty())
+            .flat_map(|l| l.chars())
+            .collect();
+
+        Self { ln_len, vec }
+    }
+
+    /// Find the index of a key character
+    fn index_of(&self, key: Key) -> usize {
+        self.vec.iter().position(|k| k == &key).unwrap()
+    }
+
+    /// Move from the specified position in the specified direction.
+    /// Returns the value of the new position and its index
+    fn move_from(&self, pos: usize, dir: Dir) -> (Key, usize) {
+        let new_pos = {
+            match dir {
+                Dir::U => {
+                    if pos < self.ln_len {
+                        pos
+                    } else {
+                        pos - self.ln_len
+                    }
+                }
+                Dir::D => {
+                    if pos >= self.vec.len() - self.ln_len {
+                        pos
+                    } else {
+                        pos + self.ln_len
+                    }
+                }
+                Dir::R => {
+                    if pos % self.ln_len == self.ln_len - 1 {
+                        pos
+                    } else {
+                        pos + 1
+                    }
+                }
+                Dir::L => {
+                    if pos % self.ln_len == 0 {
+                        pos
+                    } else {
+                        pos - 1
+                    }
+                }
+            }
+        };
+        let key = self.vec[new_pos];
+        if key == ' ' {
+            return (self.vec[pos], pos);
+        }
+
+        (self.vec[new_pos], new_pos)
+    }
+
+    /// Follow a set of directions to arrive at a final key
+    fn follow_dirs(&self, dirs: &[Dir], init_key: Key) -> Key {
+        let mut key = init_key;
+        let mut pos = self.index_of(key);
+
+        for dir in dirs {
+            (key, pos) = self.move_from(pos, *dir);
+        }
+
+        key
+    }
+
+    /// Follow multiple sets of directions to get a multidigit code
+    fn follow_dir_lists(&self, dir_lists: &[Dirs]) -> String {
+        let initial_key = '5';
+        dir_lists
+            .iter()
+            .fold(vec![], |mut digits, list| {
+                let key = digits.last().copied().unwrap_or(initial_key);
+                let new_key = self.follow_dirs(list, key);
+                digits.push(new_key);
+                digits
+            })
+            .iter()
+            .collect()
+    }
+}
 
 #[aoc_generator(day2)]
 fn parse(input: &str) -> Lines {
@@ -33,29 +125,32 @@ fn parse(input: &str) -> Lines {
 
 #[aoc(day2, part1)]
 fn part1(input: &Lines) -> String {
-    let digits = input.iter().fold(vec![], |mut digits: Vec<Digit>, line| {
-        let new_digit = line.iter().fold(
-            digits.last().copied().unwrap_or((1, 1)),
-            |(x, y), dir| match dir {
-                Dir::U => (x, if y > 0 { y - 1 } else { 0 }),
-                Dir::D => (x, if y < 2 { y + 1 } else { 2 }),
-                Dir::L => (if x > 0 { x - 1 } else { 0 }, y),
-                Dir::R => (if x < 2 { x + 1 } else { 2 }, y),
-            },
-        );
-        digits.push(new_digit);
-        digits
-    });
+    let keypad = Keypad::new(
+        "
+123
+456
+789
+",
+        3,
+    );
 
-    digits
-        .into_iter()
-        .map(|(x, y)| ((x + 1) + (y * 3)).to_string())
-        .collect()
+    keypad.follow_dir_lists(input)
 }
 
 #[aoc(day2, part2)]
 fn part2(input: &Lines) -> String {
-    todo!()
+    let keypad = Keypad::new(
+        "
+  1  
+ 234 
+56789
+ ABC 
+  D  
+",
+        5,
+    );
+
+    keypad.follow_dir_lists(input)
 }
 
 #[cfg(test)]
