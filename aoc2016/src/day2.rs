@@ -49,7 +49,7 @@ fn part1(input: &Lines) -> String {
 
     digits
         .into_iter()
-        .map(|(x, y)| ((x + 1) * (y + 1)).to_string())
+        .map(|(x, y)| ((x + 1) + (y * 3)).to_string())
         .collect()
 }
 
