@@ -77,6 +77,14 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "ULL
+                 RRDDD
+                 LURDL
+                 UUUUD"
+            )),
+            "5DB3"
+        );
     }
 }
