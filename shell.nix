@@ -27,5 +27,7 @@ pkgs.mkShell {
     rustc
     rust-analyzer
     rustfmt
-  ];
+  ] ++ lib.optional stdenv.isDarwin iconv;
+
+  nativeBuildInputs = pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.pkg-config;
 }
