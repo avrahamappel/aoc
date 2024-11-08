@@ -9,6 +9,7 @@ fn parse(input: &str) -> Vec<usize> {
         .collect()
 }
 
+/// Run an Intcode program
 fn run_program(mut prg: Vec<usize>) -> Vec<usize> {
     let mut idx = 0;
     loop {
@@ -35,22 +36,52 @@ fn run_program(mut prg: Vec<usize>) -> Vec<usize> {
     prg
 }
 
-#[aoc(day2, part1)]
-fn part1(input: &[usize]) -> usize {
-    let mut prg = input.to_vec();
-
-    // Restore 1012 program alarm state
-    prg[1] = 12;
-    prg[2] = 2;
+/// Run program with updated values for addresses 1 and 2
+fn run_prg_with_nv(noun: usize, verb: usize, mut prg: Vec<usize>) -> usize {
+    prg[1] = noun;
+    prg[2] = verb;
 
     prg = run_program(prg);
-
     prg[0]
 }
 
+#[aoc(day2, part1)]
+fn part1(input: &[usize]) -> usize {
+    let prg = input.to_vec();
+
+    // Restore 1012 program alarm state
+    run_prg_with_nv(12, 2, prg)
+}
+
 #[aoc(day2, part2)]
-fn part2(input: &[usize]) -> String {
-    todo!()
+fn part2(input: &[usize]) -> usize {
+    let expected = 19690720;
+    let mut noun = 0;
+    let mut verb = 0;
+
+    //dbg!(input.len());
+
+    'noun: for n in noun..input.len() {
+        'verb: for v in verb..input.len() {
+            let prg = input.to_vec();
+            let output = run_prg_with_nv(n, v, prg);
+            //dbg!((n, v, output));
+
+            if output > expected {
+                // Too high
+                break 'verb;
+            }
+
+            if output == expected {
+                // Found the correct inputs, go to end
+                noun = n;
+                verb = v;
+                break 'noun;
+            }
+        }
+    }
+
+    100 * noun + verb
 }
 
 #[cfg(test)]
@@ -77,10 +108,5 @@ mod tests {
                 .join(",");
             assert_eq!(prg, expected);
         }
-    }
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
     }
 }
