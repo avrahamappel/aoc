@@ -38,13 +38,14 @@ fn parse_digits(s: &str) -> Vec<char> {
             digits.push(c);
             cur_word.clear();
         } else {
-            cur_word.push(c)
+            cur_word.push(c);
         }
 
         // Check cur_word for digit match
         if let Some(pos) = digit_words.iter().position(|dw| cur_word.ends_with(dw)) {
             // Increment index by 1 to find the char value
-            digits.push(char::from_digit(pos as u32 + 1, 10).unwrap());
+            let pos_u32 = u32::try_from(pos).unwrap();
+            digits.push(char::from_digit(pos_u32 + 1, 10).unwrap());
             cur_word.clear();
         }
     }
@@ -54,16 +55,16 @@ fn parse_digits(s: &str) -> Vec<char> {
 
 // TODO Doesn't work. Perhaps we need to use parse_digits backwards for the second number, just as
 // we do for the first?
-#[aoc(day1, part2)]
+#[aoc(day1, part2, naive)]
 fn part2(input: &[String]) -> u32 {
     input
         .iter()
         .filter_map(|line| {
-            eprintln!();
-            eprintln!("---LINE---");
-            dbg!(line);
+            //eprintln!();
+            //eprintln!("---LINE---");
+            //dbg!(line);
             let digits = parse_digits(line);
-            dbg!(&digits);
+            //dbg!(&digits);
             if let (Some(f), Some(l)) = (digits.first(), digits.last()) {
                 Some(format!("{f}{l}"))
             } else {
@@ -71,9 +72,59 @@ fn part2(input: &[String]) -> u32 {
             }
         })
         .map(|d| d.parse::<u32>().unwrap())
-        .inspect(|x| {
-            dbg!(x);
+        //.inspect(|x| {
+        //    dbg!(x);
+        //})
+        .sum()
+}
+
+/// Parse the first digit or numeric digit string from a string
+/// Returns a char that is a valid ascii digit
+fn parse_digit<I>(s: I, digit_words: &[&str]) -> Option<char>
+where
+    I: Iterator<Item = char>,
+{
+    // Track current alphabetical word
+    let mut cur_word = String::new();
+
+    for c in s {
+        if c.is_ascii_digit() {
+            return Some(c);
+        }
+        cur_word.push(c);
+
+        // Check cur_word for digit match
+        if let Some(pos) = digit_words.iter().position(|dw| cur_word.ends_with(dw)) {
+            // Increment index by 1 to find the char value
+            let pos_u32 = u32::try_from(pos).unwrap();
+            return char::from_digit(pos_u32 + 1, 10);
+        }
+    }
+
+    None
+}
+
+#[aoc(day1, part2, correct)]
+fn part2_correct(input: &[String]) -> u32 {
+    input
+        .iter()
+        .filter_map(|line| {
+            let digit_words = [
+                "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            ];
+            let digit_words_rev = [
+                "eno", "owt", "eerht", "ruof", "evif", "xis", "neves", "thgie", "enin",
+            ];
+            if let (Some(f), Some(l)) = (
+                parse_digit(line.chars(), &digit_words),
+                parse_digit(line.chars().rev(), &digit_words_rev),
+            ) {
+                Some(format!("{f}{l}"))
+            } else {
+                None
+            }
         })
+        .map(|d| d.parse::<u32>().unwrap())
         .sum()
 }
 
@@ -96,17 +147,16 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(
-            part2(&parse(
-                "two1nine
-                 eightwothree
-                 abcone2threexyz
-                 xtwone3four
-                 4nineeightseven2
-                 zoneight234
-                 7pqrstsixteen"
-            )),
-            281
+        let parsed = &parse(
+            "two1nine
+             eightwothree
+             abcone2threexyz                                    
+             xtwone3four
+             4nineeightseven2
+             zoneight234
+             7pqrstsixteen",
         );
+        assert_eq!(part2(parsed), 281);
+        assert_eq!(part2_correct(parsed), 281);
     }
 }
