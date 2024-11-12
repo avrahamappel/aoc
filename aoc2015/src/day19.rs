@@ -81,7 +81,7 @@ fn part1_hash_set(m: &Machine) -> usize {
 //#[aoc(day19, part2, naive)]
 fn part2_naive(m: &Machine) -> usize {
     let mut paths = VecDeque::from([vec![String::from("e")]]);
-    let mut visited = HashSet::new();
+    let mut visited = HashSet::from([String::from("e")]);
 
     // for each molecule path in queue
     while let Some(mp) = paths.pop_front() {
@@ -116,9 +116,11 @@ fn part2_naive(m: &Machine) -> usize {
         // push each one into queue
         for (r, i) in replace_points {
             let mut new_path = mp.clone();
-            let mut new_molecule = latest_m.clone().to_string();
-
-            new_molecule.replace_range(i..i + r.from.len(), &r.to);
+            let mut new_molecule =
+                String::with_capacity(latest_m.len() - r.from.len() + r.to.len());
+            new_molecule += &latest_m[..i];
+            new_molecule += &r.to;
+            new_molecule += &latest_m[i + r.from.len()..];
 
             // If new molecule has already been seen, skip
             if visited.contains(&new_molecule) {
