@@ -1,8 +1,8 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Replacement {
     from: String,
     to: String,
@@ -78,10 +78,61 @@ fn part1_hash_set(m: &Machine) -> usize {
     molecules.len()
 }
 
-//#[aoc(day19, part2, naive)]
-fn part2_naive(m: &Machine) -> usize {
-    let mut paths = VecDeque::from([vec![String::from("e")]]);
-    let mut visited = HashSet::from([String::from("e")]);
+#[derive(Default, Debug)]
+struct TrieNode<'r> {
+    children: HashMap<char, TrieNode<'r>>,
+    // Replacements applicable to this point in the trie
+    replacements: Vec<&'r Replacement>,
+}
+
+struct Trie<'r> {
+    root: TrieNode<'r>,
+    machine: &'r Machine,
+}
+
+impl<'r> Trie<'r> {
+    fn new(machine: &'r Machine) -> Trie<'r> {
+        Self {
+            machine,
+            root: TrieNode::default(),
+        }
+    }
+
+    /// Insert a string into the trie, and return all possible replacements for the string
+    fn get_replacements(&mut self, s: &str) -> Vec<(&Replacement, usize)> {
+        let mut node = &mut self.root;
+        let mut tracking_str = String::new();
+        let mut rs = vec![];
+
+        for (i, c) in s.chars().enumerate() {
+            tracking_str.push(c);
+            node = node.children.entry(c).or_insert_with(|| {
+                let replacements = self
+                    .machine
+                    .replacements
+                    .iter()
+                    .filter(|r| tracking_str.ends_with(&r.from))
+                    .collect();
+                TrieNode {
+                    replacements,
+                    ..Default::default()
+                }
+            });
+
+            rs.extend(node.replacements.iter().map(|r| (*r, i)));
+        }
+
+        rs
+    }
+}
+
+#[aoc(day19, part2)]
+fn part2(m: &Machine) -> usize {
+    let init_str = String::from("e");
+    let mut paths = VecDeque::from([vec![init_str.clone()]]);
+    let mut visited = HashSet::from([init_str.clone()]);
+    let mut trie = Trie::new(m);
+    let _ = trie.get_replacements(&init_str);
 
     // for each molecule path in queue
     while let Some(mp) = paths.pop_front() {
@@ -98,20 +149,12 @@ fn part2_naive(m: &Machine) -> usize {
             return mp.len() - 1;
         }
 
+        // DEBUG TRIE
+        //dbg!(&trie.root);
+        // DEBUG TRIE
+
         // find all replacements applicable to last molecule and make them
-        let replace_points: Vec<_> = m
-            .replacements
-            .iter()
-            .flat_map(|r| {
-                latest_m
-                    .match_indices(&r.from.clone())
-                    .map(|(i, _)| {
-                        let r_ = r.clone();
-                        (r_, i)
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
+        let replace_points: Vec<_> = trie.get_replacements(latest_m);
 
         // push each one into queue
         for (r, i) in replace_points {
@@ -120,7 +163,9 @@ fn part2_naive(m: &Machine) -> usize {
                 String::with_capacity(latest_m.len() - r.from.len() + r.to.len());
             new_molecule += &latest_m[..i];
             new_molecule += &r.to;
-            new_molecule += &latest_m[i + r.from.len()..];
+            if i + r.from.len() < latest_m.len() {
+                new_molecule += &latest_m[i + r.from.len()..];
+            }
 
             // If new molecule has already been seen, skip
             if visited.contains(&new_molecule) {
@@ -215,7 +260,7 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        for f in [part2_naive] {
+        for f in [part2] {
             assert_eq!(
                 f(&parse(
                     "e => H
