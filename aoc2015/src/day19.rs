@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -126,27 +127,57 @@ impl<'r> Trie<'r> {
     }
 }
 
+/// Represents a path to creating a molecule from "e"
+#[derive(PartialEq, Eq, Debug, Clone)]
+struct Path<'t> {
+    path: Vec<String>,
+    target: &'t str,
+}
+
+/// How to sort possible molecule paths
+impl Ord for Path<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let s_last = self.path.last();
+        let o_last = other.path.last();
+        let get_pres = |o: Option<&String>| o.map(|s| self.target.contains(s));
+        let get_len = |o: Option<&String>| o.map(String::len);
+
+        // Compare by size
+        get_len(o_last).cmp(&get_len(s_last)).then_with(||
+        // Compare by presence in target
+        get_pres(s_last).cmp(&get_pres(o_last)))
+    }
+}
+impl PartialOrd for Path<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[aoc(day19, part2)]
 fn part2(m: &Machine) -> usize {
     let init_str = String::from("e");
-    let mut paths = VecDeque::from([vec![init_str.clone()]]);
+    let mut paths = BinaryHeap::from([Path {
+        path: vec![init_str.clone()],
+        target: &m.molecule,
+    }]);
     let mut visited = HashSet::from([init_str.clone()]);
     let mut trie = Trie::new(m);
     let _ = trie.get_replacements(&init_str);
 
     // for each molecule path in queue
-    while let Some(mp) = paths.pop_front() {
+    while let Some(mp) = paths.pop() {
         // --- DEBUG
-        //eprintln!("{}", mp.join(" -> "));
+        eprintln!("{}", mp.path.join(" -> "));
         // --- DEBUG
 
-        let latest_m = mp.last().unwrap();
+        let latest_m = mp.path.last().unwrap();
 
         // if last molecule equals target molecule, return path
         if *latest_m == m.molecule {
             //dbg!(&mp);
             // return len - 1 as the first step doesn't count
-            return mp.len() - 1;
+            return mp.path.len() - 1;
         }
 
         // DEBUG TRIE
@@ -154,7 +185,7 @@ fn part2(m: &Machine) -> usize {
         // DEBUG TRIE
 
         // find all replacements applicable to last molecule and make them
-        let replace_points: Vec<_> = trie.get_replacements(latest_m);
+        let replace_points = trie.get_replacements(latest_m);
 
         // push each one into queue
         for (r, i) in replace_points {
@@ -167,14 +198,19 @@ fn part2(m: &Machine) -> usize {
                 new_molecule += &latest_m[i + r.from.len()..];
             }
 
+            // If molecule is larger than target, skip
+            if new_molecule.len() > m.molecule.len() {
+                continue;
+            }
+
             // If new molecule has already been seen, skip
             if visited.contains(&new_molecule) {
                 continue;
             }
 
             visited.insert(new_molecule.clone());
-            new_path.push(new_molecule);
-            paths.push_back(new_path);
+            new_path.path.push(new_molecule);
+            paths.push(new_path);
         }
     }
     0
