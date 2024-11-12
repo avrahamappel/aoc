@@ -78,13 +78,13 @@ fn part1_hash_set(m: &Machine) -> usize {
     molecules.len()
 }
 
-#[aoc(day19, part2)]
-fn part2(m: &Machine) -> usize {
+//#[aoc(day19, part2, naive)]
+fn part2_naive(m: &Machine) -> usize {
     let mut paths = VecDeque::from([vec![String::from("e")]]);
     // for each molecule path in queue
     while let Some(mp) = paths.pop_front() {
         // --- DEBUG
-        eprintln!("{}", mp.join(" -> "));
+        //eprintln!("{}", mp.join(" -> "));
         // --- DEBUG
 
         let latest_m = mp.last().unwrap();
@@ -116,6 +116,54 @@ fn part2(m: &Machine) -> usize {
             let mut new_molecule = latest_m.clone().to_string();
 
             new_molecule.replace_range(i..i + r.from.len(), &r.to);
+            new_path.push(new_molecule);
+            paths.push_back(new_path);
+        }
+    }
+    0
+}
+
+/// Start from the solution and work backwards to "e" to speed things up
+//#[aoc(day19, part2, backwards)]
+fn part2_backwards(m: &Machine) -> usize {
+    let mut paths = VecDeque::from([vec![m.molecule.clone()]]);
+    // for each molecule path in queue
+    while let Some(mp) = paths.pop_front() {
+        // --- DEBUG
+        //eprintln!("{}", mp.join(" <- "));
+        // --- DEBUG
+
+        let latest_m = mp.last().unwrap();
+
+        // if last molecule equals "e", return path
+        if *latest_m == "e" {
+            //dbg!(&mp);
+            // return len - 1 as the first step doesn't count
+            return mp.len() - 1;
+        }
+
+        // find all replacements applicable to last molecule and make them
+        let replace_points: Vec<_> = m
+            .replacements
+            .iter()
+            .flat_map(|r| {
+                latest_m
+                    .match_indices(&r.to.clone())
+                    .map(|(i, _)| {
+                        let r_ = r.clone();
+                        (r_, i)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        // push each one into queue
+        for (r, i) in replace_points {
+            //eprintln!("{0} <= {1}: {i}", r.to, r.from);
+            //eprintln!("{latest_m}");
+            let mut new_path = mp.clone();
+            let mut new_molecule = latest_m.clone().to_string();
+
+            new_molecule.replace_range(i..i + r.to.len(), &r.from);
             new_path.push(new_molecule);
             paths.push_back(new_path);
         }
@@ -155,29 +203,31 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(
-            part2(&parse(
-                "e => H
-                 e => O
-                 H => HO
-                 H => OH
-                 O => HH
+        for f in [part2_naive, part2_backwards] {
+            assert_eq!(
+                f(&parse(
+                    "e => H
+                     e => O
+                     H => HO
+                     H => OH
+                     O => HH
 
-                 HOH"
-            )),
-            3
-        );
-        assert_eq!(
-            part2(&parse(
-                "e => H
-                 e => O
-                 H => HO
-                 H => OH
-                 O => HH
+                     HOH"
+                )),
+                3
+            );
+            assert_eq!(
+                f(&parse(
+                    "e => H
+                     e => O
+                     H => HO
+                     H => OH
+                     O => HH
 
-                 HOHOHO"
-            )),
-            6
-        );
+                     HOHOHO"
+                )),
+                6
+            );
+        }
     }
 }
