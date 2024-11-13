@@ -268,14 +268,14 @@ fn estimate_cost(molecule: &str, goal: &str) -> usize {
     } else {
         goal.len() - molecule.len()
     };
-    let uniq_missing_chars = {
+    let uniq_missing_words = {
         let mut goal_cs = HashSet::new();
         let mut mol_cs = HashSet::new();
-        goal_cs.extend(goal.chars());
-        mol_cs.extend(molecule.chars());
+        goal_cs.extend(goal.split_inclusive(char::is_lowercase));
+        mol_cs.extend(molecule.split_inclusive(char::is_lowercase));
         goal_cs.difference(&mol_cs).count()
     };
-    length_diff + uniq_missing_chars
+    length_diff + uniq_missing_words
 }
 
 #[aoc(day19, part2)]
