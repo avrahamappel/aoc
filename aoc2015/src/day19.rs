@@ -252,7 +252,7 @@ fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
                 visited.insert(new_molecule.clone());
                 g_cost.insert(new_molecule.clone(), g_cost[&current] + 1);
                 let h_cost = estimate_cost(&new_molecule, goal);
-                let f_cost = g_cost[&new_molecule] + h_cost;
+                let f_cost = (g_cost[&new_molecule] as i128) - h_cost;
                 queue.push((f_cost, new_molecule));
             }
         }
@@ -261,13 +261,20 @@ fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
 }
 
 /// Estimate the cost of transforming the given molecule into the goal molecule
-fn estimate_cost(molecule: &str, goal: &str) -> usize {
+fn estimate_cost(molecule: &str, goal: &str) -> i128 {
     let length_diff = if molecule.len() > goal.len() {
         0
     } else {
         goal.len() - molecule.len()
     };
-    length_diff
+    let uniq_missing_chars = {
+        let mut goal_cs = HashSet::new();
+        let mut mol_cs = HashSet::new();
+        goal_cs.extend(goal.chars());
+        mol_cs.extend(molecule.chars());
+        goal_cs.difference(&mol_cs).count()
+    };
+    (length_diff + uniq_missing_chars) as i128
 }
 
 #[aoc(day19, part2)]
