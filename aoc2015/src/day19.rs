@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
@@ -7,6 +6,20 @@ use aoc_runner_derive::{aoc, aoc_generator};
 struct Replacement {
     from: String,
     to: String,
+}
+
+impl Replacement {
+    /// Perform replacement on the given molecule at the given index
+    fn replace(&self, molecule: &str, idx: usize) -> String {
+        let mut new_molecule =
+            String::with_capacity(molecule.len() - self.from.len() + self.to.len());
+        new_molecule += &molecule[..idx];
+        new_molecule += &self.to;
+        if idx + self.from.len() < molecule.len() {
+            new_molecule += &molecule[idx + self.from.len()..];
+        }
+        new_molecule
+    }
 }
 
 struct Machine {
@@ -154,7 +167,6 @@ impl PartialOrd for Path<'_> {
     }
 }
 
-#[aoc(day19, part2)]
 fn part2(m: &Machine) -> usize {
     let init_str = String::from("e");
     let mut paths = BinaryHeap::from([Path {
@@ -190,13 +202,7 @@ fn part2(m: &Machine) -> usize {
         // push each one into queue
         for (r, i) in replace_points {
             let mut new_path = mp.clone();
-            let mut new_molecule =
-                String::with_capacity(latest_m.len() - r.from.len() + r.to.len());
-            new_molecule += &latest_m[..i];
-            new_molecule += &r.to;
-            if i + r.from.len() < latest_m.len() {
-                new_molecule += &latest_m[i + r.from.len()..];
-            }
+            let new_molecule = r.replace(latest_m, i);
 
             // If molecule is larger than target, skip
             if new_molecule.len() > m.molecule.len() {
@@ -214,6 +220,59 @@ fn part2(m: &Machine) -> usize {
         }
     }
     0
+}
+
+/// Implementation of the A* search algorithm
+/// <https://en.wikipedia.org/wiki/A*_search_algorithm>
+fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
+    let mut queue = BinaryHeap::from([(0, start.clone())]);
+    let mut visited = HashSet::from([start.clone()]);
+    let mut g_cost = HashMap::from([(start, 0)]);
+
+    while let Some((f_cost, current)) = queue.pop() {
+        eprintln!("{f_cost} - {current}");
+        if current == goal {
+            return g_cost[&current];
+        }
+
+        if current.len() < goal.len() {
+            let replacements = repl_trie.get_replacements(&current);
+            for (r, i) in replacements {
+                let new_molecule = r.replace(&current, i);
+                // If molecule is larger than target, skip
+                if new_molecule.len() > goal.len() {
+                    continue;
+                }
+
+                // If new molecule has already been seen, skip
+                if visited.contains(&new_molecule) {
+                    continue;
+                }
+
+                visited.insert(new_molecule.clone());
+                g_cost.insert(new_molecule.clone(), g_cost[&current] + 1);
+                let h_cost = estimate_cost(&new_molecule, goal);
+                let f_cost = g_cost[&new_molecule] + h_cost;
+                queue.push((f_cost, new_molecule));
+            }
+        }
+    }
+    0 // Indicates failure
+}
+
+/// Estimate the cost of transforming the given molecule into the goal molecule
+fn estimate_cost(molecule: &str, goal: &str) -> usize {
+    let length_diff = if molecule.len() > goal.len() {
+        0
+    } else {
+        goal.len() - molecule.len()
+    };
+    length_diff
+}
+
+#[aoc(day19, part2)]
+fn part2_a_star(m: &Machine) -> usize {
+    a_star("e".into(), &m.molecule, Trie::new(m))
 }
 
 /// Start from the solution and work backwards to "e" to speed things up
@@ -296,7 +355,7 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        for f in [part2] {
+        for f in [part2, part2_a_star] {
             assert_eq!(
                 f(&parse(
                     "e => H
