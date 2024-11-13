@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -183,6 +183,44 @@ fn part2_backwards(m: &Machine) -> usize {
     0
 }
 
+/// Simple solution replacing from the right instead of the left. Who knew??
+/// Ran the python implementation thru ChatGPT
+/// Source:
+/// <https://www.reddit.com/r/adventofcode/comments/3xflz8/day_19_solutions/cy4k8ca/?context=3#cy4k8ca>
+/// Guilt Disclaimer: After reading through the thread, I did try to implement
+/// this on my own, but couldn't get anywhere as I'd gotten
+/// myself so confused by all my optimizations.
+#[aoc(day19, part2, plagiarized)]
+fn part2_plagialized(m: &Machine) -> usize {
+    let mut molecule = m.molecule.clone();
+    let reps: HashMap<_, _> = m
+        .replacements
+        .iter()
+        .map(|r| (r.to.clone(), r.from.clone()))
+        .collect();
+    let mut count = 0;
+    while molecule != "e" {
+        let mut replaced = false;
+
+        for (from, to) in &reps {
+            // Find the first occurrence of `from` in `molecule`
+            if let Some(pos) = molecule.find(from) {
+                // Replace the first occurrence
+                molecule.replace_range(pos..pos + from.len(), to);
+                count += 1;
+                replaced = true;
+                break; // Only replace the first occurrence
+            }
+        }
+
+        // If no replacement was made, we should break to avoid an infinite loop
+        if !replaced {
+            break;
+        }
+    }
+    count
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,7 +253,7 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        for f in [part2_naive, part2_backwards] {
+        for f in [part2_naive, part2_backwards, part2_plagialized] {
             assert_eq!(
                 f(&parse(
                     "e => H
