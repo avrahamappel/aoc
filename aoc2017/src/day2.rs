@@ -34,7 +34,30 @@ fn part1(input: &Input) -> u32 {
 
 #[aoc(day2, part2)]
 fn part2(input: &Input) -> u32 {
-    todo!()
+    input
+        .iter()
+        .map(|row| {
+            let mut res = 0;
+            for n1 in row {
+                for n2 in row {
+                    if n1 == n2 {
+                        // Is is possible for the same value to appear more than once?
+                        continue;
+                    }
+
+                    if *n2 == 0 {
+                        continue;
+                    }
+
+                    if n1 % n2 == 0 {
+                        res = n1 / n2;
+                        break;
+                    }
+                }
+            }
+            res
+        })
+        .sum()
 }
 
 #[cfg(test)]
