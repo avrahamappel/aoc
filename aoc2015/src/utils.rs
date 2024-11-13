@@ -46,4 +46,18 @@ mod tests {
         assert!(trie.contains("foo"));
         assert!(!trie.contains("bar"));
     }
+
+    #[test]
+    fn test_if_trie_contains_longer_str_then_it_contains_shorter_str_also() {
+        let mut trie = Trie::new();
+        trie.insert("foobar");
+        assert!(trie.contains("foo"));
+    }
+
+    #[test]
+    fn test_if_trie_contains_shorter_str_then_it_does_not_contain_shorter_str() {
+        let mut trie = Trie::new();
+        trie.insert("foo");
+        assert!(!trie.contains("foobar"));
+    }
 }
