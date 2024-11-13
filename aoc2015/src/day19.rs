@@ -3,6 +3,8 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
+use crate::utils::Trie as StrTrie;
+
 #[derive(Clone, Debug)]
 struct Replacement {
     from: String,
@@ -227,7 +229,8 @@ fn part2(m: &Machine) -> usize {
 /// <https://en.wikipedia.org/wiki/A*_search_algorithm>
 fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
     let mut queue = BinaryHeap::from([Reverse((0, start.clone()))]);
-    let mut visited = HashSet::from([start.clone()]);
+    let mut visited = StrTrie::new();
+    visited.insert(&start);
     let mut g_cost = HashMap::from([(start, 0)]);
 
     while let Some(Reverse((f_cost, current))) = queue.pop() {
@@ -250,7 +253,7 @@ fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
                     continue;
                 }
 
-                visited.insert(new_molecule.clone());
+                visited.insert(&new_molecule);
                 g_cost.insert(new_molecule.clone(), g_cost[&current] + 1);
                 let h_cost = estimate_cost(&new_molecule, goal);
                 let f_cost = g_cost[&new_molecule] + h_cost;

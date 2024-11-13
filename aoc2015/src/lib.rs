@@ -1,5 +1,6 @@
-mod day19;
 mod day18;
+mod day19;
+mod utils;
 
 use aoc_runner_derive::aoc_lib;
 
