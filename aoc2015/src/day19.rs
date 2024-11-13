@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
@@ -225,11 +226,11 @@ fn part2(m: &Machine) -> usize {
 /// Implementation of the A* search algorithm
 /// <https://en.wikipedia.org/wiki/A*_search_algorithm>
 fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
-    let mut queue = BinaryHeap::from([(0, start.clone())]);
+    let mut queue = BinaryHeap::from([Reverse((0, start.clone()))]);
     let mut visited = HashSet::from([start.clone()]);
     let mut g_cost = HashMap::from([(start, 0)]);
 
-    while let Some((f_cost, current)) = queue.pop() {
+    while let Some(Reverse((f_cost, current))) = queue.pop() {
         eprintln!("{f_cost} - {current}");
         if current == goal {
             return g_cost[&current];
@@ -253,7 +254,7 @@ fn a_star(start: String, goal: &str, mut repl_trie: Trie) -> usize {
                 g_cost.insert(new_molecule.clone(), g_cost[&current] + 1);
                 let h_cost = estimate_cost(&new_molecule, goal);
                 let f_cost = g_cost[&new_molecule] + h_cost;
-                queue.push((f_cost, new_molecule));
+                queue.push(Reverse((f_cost, new_molecule)));
             }
         }
     }
