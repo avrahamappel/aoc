@@ -14,6 +14,12 @@
       "revision": "ab4e29f0ade2dffa1fc861234c45ff8a23cd1f7c",
       "url": "https://api.github.com/repos/gobanos/cargo-aoc/tarball/0.3.7",
       "hash": "08k539gzp5nfdsarxbb9rvgj52dka9w137z2yc1a34w1bzvydllk"
+    },
+    "nixpkgs-unstable": {
+      "type": "Channel",
+      "name": "nixpkgs-unstable",
+      "url": "https://releases.nixos.org/nixpkgs/nixpkgs-25.05pre709559.5083ec887760/nixexprs.tar.xz",
+      "hash": "1z912j1lmrg8zp2hpmmi69dls9zlpvqfvdkvh5xc3x6iqkqwn0cd"
     }
   },
   "version": 3
