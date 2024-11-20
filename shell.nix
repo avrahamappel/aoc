@@ -33,5 +33,7 @@ pkgs.mkShell {
     rustfmt
   ] ++ lib.optional stdenv.isDarwin iconv;
 
+  CARGO_TARGET_DIR = (builtins.toString ./.) + "/target";
+
   nativeBuildInputs = lib.optional stdenv.isDarwin pkgs.pkg-config;
 }
