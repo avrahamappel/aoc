@@ -7,7 +7,7 @@ type Position = (usize, usize);
 #[derive(Debug)]
 enum Component {
     Number(String),
-    Symbol(String),
+    Symbol(char),
 }
 
 struct Schematic {
@@ -57,28 +57,38 @@ impl Schematic {
 
 #[aoc_generator(day3)]
 fn parse(input: &str) -> Schematic {
-    let grid_len = input.len();
-    let line_len = input.lines().next().unwrap().len();
-    let components = input
-        .trim()
+    let input = input.trim();
+    let grid_len = input.lines().count();
+    let line_len = input.chars().position(|c| c == '\n').unwrap();
+
+    // Parse components
+    let chars = input
         .lines()
-        .enumerate()
-        .flat_map(|(y, l)| {
-            l.trim()
-                .split('.')
-                .filter(|s| !s.is_empty())
-                .enumerate()
-                .map(move |(x, w)| {
-                    let comp = if w.chars().all(|c| c.is_ascii_digit()) {
-                        Component::Number(w.to_string())
-                    } else {
-                        Component::Symbol(w.to_string())
-                    };
-                    let pos = (x, y);
-                    (pos, comp)
-                })
-        })
-        .collect();
+        .flat_map(|l| l.trim().chars())
+        .collect::<Vec<_>>();
+    let mut c_idx = 0;
+    let mut components = HashMap::new();
+
+    while let Some(c) = chars.get(c_idx) {
+        let pos = (c_idx / grid_len, c_idx % grid_len);
+        if c.is_ascii_digit() {
+            let start = c_idx;
+            while chars
+                .get(c_idx)
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+            {
+                c_idx += 1;
+            }
+            components.insert(pos, Component::Number(chars[start..c_idx].iter().collect()));
+        } else if *c != '.' {
+            components.insert(pos, Component::Symbol(*c));
+            c_idx += 1;
+        } else {
+            c_idx += 1;
+        }
+    }
+
     Schematic {
         grid_len,
         line_len,
