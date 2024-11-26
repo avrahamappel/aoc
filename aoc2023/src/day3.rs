@@ -102,9 +102,6 @@ fn part1(input: &Schematic) -> u32 {
     input
         .components
         .iter()
-        .inspect(|x| {
-            dbg!(x);
-        })
         .filter_map(|(pos, comp)| match comp {
             Component::Number(n) => Some((n, input.neighbors(*pos, n.len()))),
             Component::Symbol(_) => None,
@@ -120,6 +117,9 @@ fn part1(input: &Schematic) -> u32 {
         })
         // add all together
         .map(|(n, _)| n.parse::<u32>().unwrap())
+        .inspect(|x| {
+            dbg!(x);
+        })
         .sum()
 }
 
