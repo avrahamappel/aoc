@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use aoc_runner_derive::{aoc, aoc_generator};
 
 type Presents = u32;
@@ -8,23 +10,37 @@ fn parse(input: &str) -> Presents {
     input.parse().unwrap()
 }
 
+fn presents_at_house_number(hn: HouseNumber) -> Presents {
+    (1..=Presents::MAX)
+        .take_while(|e| hn / e > 0)
+        .filter(|e| hn % e == 0)
+        .map(|e| e * 10)
+        .sum()
+}
+
 #[aoc(day20, part1)]
 fn part1(input: &Presents) -> HouseNumber {
-    // house numbers
-    (1..)
-        .map(|hn| {
-            // elves bearing presents
-            let prs: Presents = (1..)
-                .take_while(|e| hn / e > 0)
-                .filter(|e| hn % e == 0)
-                .map(|e| e * 10)
-                .sum();
-            (hn, prs)
-        })
-        .skip_while(|(_, prs)| prs < input)
-        .map(|(hn, _)| hn)
-        .next()
-        .unwrap()
+    let mut counter = 0;
+
+    let mut high = *input;
+    let mut low = 1;
+
+    loop {
+        counter += 1;
+        if counter == *input {
+            break 0;
+        }
+
+        let hn = ((high - low) / 2) + low;
+        eprintln!("{hn}");
+        let prs = presents_at_house_number(hn);
+        eprintln!("{prs}");
+        match prs.cmp(input) {
+            Ordering::Equal => break hn,
+            Ordering::Greater => high = hn,
+            Ordering::Less => low = hn,
+        }
+    }
 }
 
 #[aoc(day20, part2)]
@@ -38,7 +54,7 @@ mod tests {
 
     #[test]
     fn part1_example() {
-        for (hn, prs) in [(1, 10), (4, 70)] {
+        for (hn, prs) in [(1, 10), (4, 70), (9, 130)] {
             assert_eq!(hn, part1(&prs));
         }
     }
