@@ -27,6 +27,20 @@ impl Room {
             .zip(chars.iter().map(|c| c.0))
             .all(|(c1, c2)| *c1 == c2)
     }
+
+    fn decrypt_name(&self) -> String {
+        self.name
+            .chars()
+            .map(|c| {
+                if c.is_ascii_lowercase() {
+                    let offset: u32 = b'a'.into();
+                    char::from_u32(((c as u32) - offset + self.sector) % 26 + offset).unwrap()
+                } else {
+                    ' '
+                }
+            })
+            .collect()
+    }
 }
 
 type Input = Vec<Room>;
@@ -61,8 +75,11 @@ fn part1(input: &Input) -> u32 {
 }
 
 #[aoc(day4, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> usize {
+    for room in input {
+        println!("{}: {}", room.sector, room.decrypt_name());
+    }
+    input.len()
 }
 
 #[cfg(test)]
@@ -84,6 +101,12 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        let room = Room {
+            name: "qzmt-zixmtkozy-ivhz".into(),
+            sector: 343,
+            checksum: vec![],
+        };
+
+        assert_eq!(room.decrypt_name(), String::from("very encrypted name"));
     }
 }
