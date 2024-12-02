@@ -33,8 +33,15 @@ fn part1(input: &Input) -> u32 {
 }
 
 #[aoc(day1, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> i32 {
+    let mut score = 0;
+
+    for a in &input.0 {
+        let count = input.1.iter().filter(|b| *b == a).count();
+        score += i32::try_from(count).unwrap() * a;
+    }
+
+    score
 }
 
 #[cfg(test)]
@@ -58,6 +65,16 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "3   4
+                 4   3
+                 2   5
+                 1   3
+                 3   9
+                 3   3"
+            )),
+            31
+        );
     }
 }
