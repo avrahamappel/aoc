@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -54,8 +54,7 @@ fn parse(input: &str) -> Input {
         .collect()
 }
 
-#[aoc(day3, part1)]
-fn part1(input: &Input) -> usize {
+fn map_claim_ids_to_cells(input: &Input) -> HashMap<(u32, u32), Vec<u32>> {
     // map of cell to claim ids
     let mut map = HashMap::new();
     for claim in input {
@@ -68,13 +67,31 @@ fn part1(input: &Input) -> usize {
         }
     }
 
+    map
+}
+
+#[aoc(day3, part1)]
+fn part1(input: &Input) -> usize {
     // count of cells with more than one id
-    map.iter().filter(|(_, cs)| cs.len() > 1).count()
+    map_claim_ids_to_cells(input)
+        .iter()
+        .filter(|(_, cs)| cs.len() > 1)
+        .count()
 }
 
 #[aoc(day3, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> u32 {
+    let multiples: HashSet<_> = map_claim_ids_to_cells(input)
+        .into_values()
+        .filter(|cs| cs.len() > 1)
+        .flatten()
+        .collect();
+
+    input
+        .iter()
+        .find(|c| !multiples.contains(&c.id))
+        .unwrap()
+        .id
 }
 
 #[cfg(test)]
@@ -95,6 +112,13 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "#1 @ 1,3: 4x4
+                 #2 @ 3,1: 4x4
+                 #3 @ 5,5: 2x2"
+            )),
+            3
+        );
     }
 }
