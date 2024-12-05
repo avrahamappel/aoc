@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -92,8 +92,19 @@ fn part1(input: &Input) -> i32 {
 }
 
 #[aoc(day3, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> usize {
+    let a_ps: HashMap<_, _> = wire_positions(&input.wire_a)
+        .into_iter()
+        .enumerate()
+        .map(|(i, p)| (p, i))
+        .collect();
+
+    wire_positions(&input.wire_b)
+        .into_iter()
+        .enumerate()
+        .filter_map(|(b_step, pos)| a_ps.get(&pos).map(|a_step| a_step + b_step + 2))
+        .min()
+        .unwrap()
 }
 
 #[cfg(test)]
@@ -125,6 +136,24 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        for (input, output) in [
+            (
+                "R8,U5,L5,D3
+                 U7,R6,D4,L4",
+                30,
+            ),
+            (
+                "R75,D30,R83,U83,L12,D49,R71,U7,L72
+                 U62,R66,U55,R34,D71,R55,D58,R83",
+                610,
+            ),
+            (
+                "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+                 U98,R91,D20,R16,D67,R40,U7,R15,U6,R7",
+                410,
+            ),
+        ] {
+            assert_eq!(part2(&parse(input)), output);
+        }
     }
 }
