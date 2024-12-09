@@ -3,6 +3,8 @@ let
 
   pkgs = import pins.nixpkgs-unstable { };
 
+  fenix = import pins.fenix { };
+
   inherit (pkgs) lib stdenv;
 
   cargo-aoc-src = pins.cargo-aoc;
@@ -29,7 +31,7 @@ pkgs.mkShell {
     clippy
     npins
     rustc
-    rust-analyzer
+    fenix.rust-analyzer
     rustfmt
   ] ++ lib.optional stdenv.isDarwin iconv;
 
