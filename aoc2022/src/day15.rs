@@ -103,12 +103,27 @@ fn part1(input: &Input) -> i32 {
             },
         );
 
-    ranges
+    let positions: i32 = ranges
         .iter()
         // for each ramge find distance (max - min)
-        .map(|(min, max)| max - min)
+        .map(|(min, max)| max - min + 1)
         // and sum
-        .sum()
+        .sum();
+
+    let mut beacons_on_line: Vec<_> = input
+        .pairs
+        .iter()
+        .map(|p| p.beacon)
+        .filter(|(_, y)| *y == input.line_to_check)
+        .collect();
+    beacons_on_line.dedup();
+
+    let beacons_on_line_count: i32 = beacons_on_line
+        .len()
+        .try_into()
+        .expect("probably small enaough to fit into i32");
+
+    positions - beacons_on_line_count
 }
 
 #[aoc(day15, part2)]
