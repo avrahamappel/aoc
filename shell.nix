@@ -3,7 +3,7 @@ let
 
   pkgs = import pins.nixpkgs-unstable { };
 
-  fenix = import pins.fenix { };
+  fenix = import pins.fenix { inherit pkgs; };
 
   inherit (pkgs) lib stdenv;
 
