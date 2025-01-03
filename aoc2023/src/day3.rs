@@ -117,8 +117,36 @@ fn part1(input: &Schematic) -> u32 {
 }
 
 #[aoc(day3, part2)]
-fn part2(input: &Schematic) -> String {
-    todo!()
+fn part2(input: &Schematic) -> u32 {
+    input
+        .components
+        .iter()
+        .filter_map(|(pos, comp)| match comp {
+            Component::Symbol(s) if *s == '*' => Some(
+                input
+                    .neighbors(*pos, 1)
+                    .iter()
+                    .inspect(|x| {
+                        dbg!(pos, x);
+                    })
+                    .filter_map(|nbr_pos| {
+                        if let Some(Component::Number(nbr)) = input.components.get(nbr_pos) {
+                            Some(nbr)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            _ => None,
+        })
+        .filter(|nbrs| nbrs.len() == 2)
+        .map(|nbrs| {
+            let a = nbrs[0].parse::<u32>().unwrap();
+            let b = nbrs[1].parse::<u32>().unwrap();
+            a * b
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -146,6 +174,20 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "467..114..
+                 ...*......
+                 ..35..633.
+                 ......#...
+                 617*......
+                 .....+.58.
+                 ..592.....
+                 ......755.
+                 ...$.*....
+                 .664.598.."
+            )),
+            467835
+        );
     }
 }
