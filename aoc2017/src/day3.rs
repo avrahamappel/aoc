@@ -7,59 +7,30 @@ fn parse(input: &str) -> i32 {
     input.parse().unwrap_or(0)
 }
 
-#[derive(Clone, Copy)]
-struct Layer {
-    id: i32,
-    start: i32,
-    end: i32,
-}
-
-impl Layer {
-    fn new(id: i32) -> Self {
-        let sq = |n| n * n;
-        let start = sq(((id - 1) * 2) + 1) + 1;
-        let end = sq((id * 2) + 1);
-        //dbg!(id, start, end);
-        Self { id, start, end }
-    }
-
-    fn contains(self, val: i32) -> bool {
-        self.start <= val && val <= self.end
-    }
-
-    fn pos_of(self, val: i32) -> (i32, i32) {
-        dbg!(self.id, self.start, self.end);
-        //assert!(self.contains(val));
-        let offset = val - self.start;
-        dbg!(offset);
-
-        // calculate corners
-        let k = self.id;
-        let o = offset + 1;
-
-        match o / k {
-            0 => (k, o % k),
-            1 => (k, -(o % k)),
-            2 => (o % k, -k),
-            3 => (-(o % k), -k),
-            4 => (-k, -(o % k)),
-            5 => (-k, o % k),
-            6 => (-(o % k), k),
-            7 => (o % k, k),
-            _ => unreachable!(),
-        }
-    }
-}
-
 /// Determine position of integer within grid
-/// Algorithm by chatgpt
-fn grid_pos(int: i32) -> (i32, i32) {
-    // Determine the "layer" around the starting point
-    if let Some(layer) = (1..i32::MAX).map(Layer::new).find(|l| l.contains(int)) {
-        layer.pos_of(int)
-    } else {
-        unimplemented!()
+/// Algorithm by claude
+fn grid_pos(value: i32) -> (i32, i32) {
+    let mut layer = 0;
+    let mut start = 1;
+    while start + 8 * layer <= value {
+        start += 8 * layer;
+        layer += 1;
     }
+    //dbg!(value, layer, start);
+
+    let offset = value - start + 1;
+    //dbg!(offset);
+    let (x, y) = if (0..layer * 2).contains(&offset) {
+        (layer, layer - offset)
+    } else if (layer * 2..layer * 4).contains(&offset) {
+        (layer - (offset - layer * 2), -layer)
+    } else if (layer * 4..=layer * 6).contains(&offset) {
+        (-layer, -layer + (offset - layer * 4))
+    } else {
+        (-layer + (offset - layer * 6), layer)
+    };
+
+    (x, y)
 }
 
 #[aoc(day3, part1)]
@@ -68,7 +39,7 @@ fn part1(input: &i32) -> i32 {
         return 0;
     }
     // determine coords of input cell
-    let (x, y) = grid_pos(*input);
+    let (x, y) = grid_pos(*input - 1);
     dbg!(x, y);
     // calculate distance to 0,0
     x.abs() + y.abs()
@@ -119,23 +90,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn part1_example() {
+    fn test_grid_pos() {
         for (input, output) in [
-            (1, 0),
-            (2, 1),
-            (3, 2),
-            (4, 1),
-            (5, 2),
-            (6, 1),
-            (7, 2),
-            (8, 1),
-            (9, 2),
-            (12, 3),
-            (23, 2),
-            (28, 3),
-            (41, 4),
-            (1024, 31),
+            (1, (1, 0)),
+            (2, (1, -1)),
+            (3, (0, -1)),
+            (4, (-1, -1)),
+            (5, (-1, 0)),
+            (6, (-1, 1)),
+            (7, (0, 1)),
+            (8, (1, 1)),
+            (9, (2, 1)),
+            (10, (2, 0)),
+            (11, (2, -1)),
+            (12, (2, -2)),
+            (13, (1, -2)),
+            (14, (0, -2)),
+            (15, (-1, -2)),
+            (16, (-2, -2)),
+            (17, (-2, -1)),
+            (18, (-2, 0)),
+            (19, (-2, 1)),
+            (20, (-2, 2)),
+            (21, (-1, 2)),
+            (22, (0, 2)),
+            (23, (1, 2)),
+            (24, (2, 2)),
+            (25, (3, 2)),
         ] {
+            assert_eq!(output, grid_pos(input));
+        }
+    }
+
+    #[test]
+    fn part1_example() {
+        for (input, output) in [(1, 0), (12, 3), (23, 2), (1024, 31)] {
             assert_eq!(part1(&input), output);
         }
     }
