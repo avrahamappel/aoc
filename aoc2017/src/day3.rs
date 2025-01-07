@@ -53,7 +53,7 @@ fn part2(input: &i32) -> i32 {
         //eprintln!("---DEBUG---");
         //dbg!(int);
         // Generate grid, populating each cell with the sum of populated neighbors
-        let pos = grid_pos(int);
+        let pos = grid_pos(int - 1);
         //dbg!(pos);
         let get_neighbor_coords = |(x, y)| {
             [
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        for (input, output) in [(3, 4), (6, 10), (12, 23), (24, 25)] {
+        for (input, output) in [(1, 2), (2, 4), (4, 5)] {
             assert_eq!(part2(&input), output);
         }
     }
