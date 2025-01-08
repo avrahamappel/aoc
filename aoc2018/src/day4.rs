@@ -55,9 +55,8 @@ fn parse(input: &str) -> Input {
     evts
 }
 
-#[aoc(day4, part1)]
-fn part1(input: &Input) -> u32 {
-    let mut guard_sleep_spans: HashMap<_, Vec<(DateTime, DateTime)>> = HashMap::new();
+fn guard_sleep_spans(input: &Input) -> HashMap<u32, Vec<(DateTime, DateTime)>> {
+    let mut guard_sleep_spans = HashMap::new();
     let mut guard_id = 0;
     let mut sleep_time = DateTime::ZERO;
 
@@ -73,11 +72,18 @@ fn part1(input: &Input) -> u32 {
                 let span = (sleep_time, evt.date);
                 guard_sleep_spans
                     .entry(guard_id)
-                    .and_modify(|spans| spans.push(span))
+                    .and_modify(|spans: &mut Vec<_>| spans.push(span))
                     .or_insert(vec![span]);
             }
         }
     }
+
+    guard_sleep_spans
+}
+
+#[aoc(day4, part1)]
+fn part1(input: &Input) -> u32 {
+    let guard_sleep_spans = guard_sleep_spans(input);
 
     let sleepiest_guard = guard_sleep_spans
         .iter()
@@ -94,7 +100,7 @@ fn part1(input: &Input) -> u32 {
         .to_owned();
 
     let mut guard_sleep_minutes = HashMap::new();
-    for (start, end) in guard_sleep_spans.get_mut(&sleepiest_guard).unwrap() {
+    for (start, end) in guard_sleep_spans.get(&sleepiest_guard).unwrap() {
         for m in start.minute()..end.minute() {
             guard_sleep_minutes
                 .entry(m)
@@ -115,8 +121,30 @@ fn part1(input: &Input) -> u32 {
 }
 
 #[aoc(day4, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> u32 {
+    let guard_sleep_spans = guard_sleep_spans(input);
+
+    let mut guard_sleep_minutes = HashMap::new();
+    for (guard_id, spans) in guard_sleep_spans {
+        for (start, end) in spans {
+            for m in start.minute()..end.minute() {
+                guard_sleep_minutes
+                    .entry((guard_id, m))
+                    .and_modify(|c| *c += 1)
+                    .or_insert(1);
+            }
+        }
+    }
+    //
+    //dbg!(&guard_sleep_minutes);
+    let (sleepiest_guard, most_sleepy_minute) = guard_sleep_minutes
+        .iter()
+        .max_by_key(|kv| kv.1)
+        .expect("There should be one minute that is the most sleepy")
+        .0;
+
+    //dbg!(sleepiest_guard, most_sleepy_minute);
+    sleepiest_guard * (*most_sleepy_minute as u32)
 }
 
 #[cfg(test)]
@@ -151,6 +179,27 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(
+            part2(&parse(
+                "[1518-11-01 00:00] Guard #10 begins shift
+                 [1518-11-01 00:05] falls asleep
+                 [1518-11-01 00:25] wakes up
+                 [1518-11-01 00:30] falls asleep
+                 [1518-11-01 00:55] wakes up
+                 [1518-11-01 23:58] Guard #99 begins shift
+                 [1518-11-02 00:40] falls asleep
+                 [1518-11-02 00:50] wakes up
+                 [1518-11-03 00:05] Guard #10 begins shift
+                 [1518-11-03 00:24] falls asleep
+                 [1518-11-03 00:29] wakes up
+                 [1518-11-04 00:02] Guard #99 begins shift
+                 [1518-11-04 00:36] falls asleep
+                 [1518-11-04 00:46] wakes up
+                 [1518-11-05 00:03] Guard #99 begins shift
+                 [1518-11-05 00:45] falls asleep
+                 [1518-11-05 00:55] wakes up"
+            )),
+            4455
+        );
     }
 }
