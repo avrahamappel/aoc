@@ -87,7 +87,7 @@ impl Fighter {
                 if self.ring1.is_none() {
                     self.ring1 = Some(r);
                     Some(self)
-                } else if self.ring2.is_none() {
+                } else if self.ring2.is_none() && self.ring1.unwrap() != r {
                     self.ring2 = Some(r);
                     Some(self)
                 } else {
@@ -294,8 +294,26 @@ fn part1(boss: &Fighter) -> u32 {
 }
 
 #[aoc(day21, part2)]
-fn part2(boss: &Fighter) -> String {
-    todo!()
+fn part2(boss: &Fighter) -> u32 {
+    let mut fighters = vec![];
+    let mut queue = VecDeque::from([Fighter::new()]);
+
+    while let Some(fighter) = queue.pop_front() {
+        if fighters.contains(&fighter) {
+            continue;
+        }
+        dbg!(fighter);
+        if fighter.weapon.damage != 0 && !fighter.fight(*boss) {
+            fighters.push(fighter);
+        }
+        for (price, item) in STORE {
+            if let Some(f) = fighter.buy(price, item) {
+                queue.push_back(f);
+            }
+        }
+    }
+
+    fighters.iter().max_by_key(|f| f.spent).unwrap().spent
 }
 
 #[cfg(test)]
@@ -315,10 +333,5 @@ mod tests {
             Armor: 2",
         );
         assert!(player.fight(boss));
-    }
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
     }
 }
