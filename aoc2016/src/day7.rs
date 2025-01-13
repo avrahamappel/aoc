@@ -61,9 +61,48 @@ fn part1(input: &str) -> usize {
         .count()
 }
 
+fn supports_ssl(address: &str) -> bool {
+    let (plain, hypernet) = {
+        let mut in_brackets = false;
+        let mut plain = vec![];
+        let mut hypernet = vec![];
+
+        for c in address.chars() {
+            match c {
+                '[' => {
+                    in_brackets = true;
+                }
+                ']' => {
+                    in_brackets = false;
+                }
+                _ => {
+                    if in_brackets {
+                        hypernet.push(c);
+                    } else {
+                        plain.push(c);
+                    }
+                }
+            }
+        }
+        (plain, hypernet)
+    };
+
+    let has_aba = |cs: &&[_]| cs[0] != cs[1] && cs[0] == cs[2];
+
+    let abas: Vec<_> = plain.windows(3).filter(has_aba).collect();
+
+    hypernet
+        .windows(3)
+        .filter(has_aba)
+        .any(|bab| abas.iter().any(|aba| aba[0] == bab[1] && aba[1] == bab[0]))
+}
+
 #[aoc(day7, part2)]
-fn part2(input: &str) -> String {
-    todo!()
+fn part2(input: &str) -> usize {
+    input
+        .lines()
+        .filter(|address| supports_ssl(address))
+        .count()
 }
 
 #[cfg(test)]
@@ -85,6 +124,14 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        for (input, output) in [
+            ("aba[bab]xyz", true),
+            ("xyx[xyx]xyx", false),
+            ("aaa[kek]eke", true),
+            ("zazbz[bzb]cdb", true),
+        ] {
+            eprintln!("testing: [{input}]");
+            assert_eq!(output, supports_ssl(input));
+        }
     }
 }
