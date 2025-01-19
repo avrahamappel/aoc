@@ -118,11 +118,6 @@ fn part1(input: &Input) -> usize {
     grid.iter().map(|y| y.iter().filter(|x| **x).count()).sum()
 }
 
-#[aoc(day8, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,10 +133,5 @@ mod tests {
             )),
             6
         );
-    }
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
     }
 }
