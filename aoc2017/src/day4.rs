@@ -23,8 +23,25 @@ fn part1(input: &str) -> usize {
 }
 
 #[aoc(day4, part2)]
-fn part2(input: &str) -> String {
-    todo!()
+fn part2(input: &str) -> usize {
+    input
+        .lines()
+        .filter(|l| {
+            let mut anagrams = vec![];
+            for word in l.split_ascii_whitespace() {
+                let mut anagram = vec![];
+                anagram.extend(word.chars());
+                anagram.sort_unstable();
+                //dbg!(&anagram);
+                if anagrams.contains(&anagram) {
+                    return false;
+                }
+                anagrams.push(anagram);
+                //dbg!(&anagrams);
+            }
+            true
+        })
+        .count()
 }
 
 #[cfg(test)]
@@ -45,6 +62,15 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<INPUT>")), "<OUTPUT>");
+        assert_eq!(
+            part2(&parse(
+                "abcde fghij
+                 abcde xyz ecdab
+                 a ab abc abd abf abj
+                 iiii oiii ooii oooi oooo
+                 oiii ioii iioi iiio"
+            )),
+            3
+        );
     }
 }
