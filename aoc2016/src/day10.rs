@@ -241,8 +241,13 @@ fn part1(input: &Input) -> u32 {
 }
 
 #[aoc(day10, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> u32 {
+    let mut factory = Factory::new(input);
+    factory.run();
+
+    factory.outputs.get(&0).unwrap().chips.first().unwrap()
+        * factory.outputs.get(&1).unwrap().chips.first().unwrap()
+        * factory.outputs.get(&2).unwrap().chips.first().unwrap()
 }
 
 #[cfg(test)]
@@ -283,10 +288,5 @@ mod tests {
             },
             factory.outputs.get(&2).unwrap()
         );
-    }
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
     }
 }
