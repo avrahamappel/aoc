@@ -26,6 +26,7 @@ in
 
 pkgs.mkShell {
   packages = with pkgs; [
+    bacon
     cargo
     cargo-aoc
     clippy
