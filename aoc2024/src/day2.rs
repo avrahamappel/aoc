@@ -71,7 +71,7 @@ fn part2(input: &Input) -> usize {
         .iter()
         .enumerate()
         .filter(|(i, report)| {
-            if check_report(*report, *i) {
+            if check_report(report, *i) {
                 return true;
             }
 
