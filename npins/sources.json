@@ -14,24 +14,6 @@
       "revision": "ab4e29f0ade2dffa1fc861234c45ff8a23cd1f7c",
       "url": "https://api.github.com/repos/gobanos/cargo-aoc/tarball/0.3.7",
       "hash": "08k539gzp5nfdsarxbb9rvgj52dka9w137z2yc1a34w1bzvydllk"
-    },
-    "fenix": {
-      "type": "Git",
-      "repository": {
-        "type": "GitHub",
-        "owner": "nix-community",
-        "repo": "fenix"
-      },
-      "branch": "main",
-      "revision": "cc65b71af7eae5d015ff3c20a5f034c3d1fbac72",
-      "url": "https://github.com/nix-community/fenix/archive/cc65b71af7eae5d015ff3c20a5f034c3d1fbac72.tar.gz",
-      "hash": "0hrgkyxq1x9fyxk6yai1174ckj20nimx03lbnd12i3q5q5xf0p6n"
-    },
-    "nixpkgs-unstable": {
-      "type": "Channel",
-      "name": "nixpkgs-unstable",
-      "url": "https://releases.nixos.org/nixpkgs/nixpkgs-25.05pre745262.9a5db3142ce4/nixexprs.tar.xz",
-      "hash": "1fp0i2h0fg0lvzky4idgs31xs3jimyiprqlgc3spdv8xp704zs3q"
     }
   },
   "version": 3
