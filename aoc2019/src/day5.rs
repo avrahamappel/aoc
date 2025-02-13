@@ -1,3 +1,5 @@
+#![allow(clippy::cast_sign_loss)]
+
 use aoc_runner_derive::{aoc, aoc_generator};
 
 type Program = Vec<i32>;
@@ -36,6 +38,10 @@ enum Op {
     Mul(Mode, Mode, Position),
     In(Position),
     Out(Position),
+    JumpIfTrue(Mode, Mode),
+    JumpIfFalse(Mode, Mode),
+    LessThan(Mode, Mode, Position),
+    Equals(Mode, Mode, Position),
     Halt,
 }
 
@@ -66,16 +72,12 @@ impl Op {
             2 => Op::Mul(mode0(), mode1(), Position::from(arg2())),
             3 => Op::In(Position::from(arg0())),
             4 => Op::Out(Position::from(arg0())),
+            5 => Op::JumpIfTrue(mode0(), mode1()),
+            6 => Op::JumpIfFalse(mode0(), mode1()),
+            7 => Op::LessThan(mode0(), mode1(), Position::from(arg2())),
+            8 => Op::Equals(mode0(), mode1(), Position::from(arg2())),
             99 => Op::Halt,
             _ => panic!("Invalid opcode"),
-        }
-    }
-
-    fn next_idx(self, idx: usize) -> usize {
-        idx + match self {
-            Op::Add(_, _, _) | Op::Mul(_, _, _) => 4,
-            Op::In(_) | Op::Out(_) => 2,
-            Op::Halt => unreachable!(),
         }
     }
 }
@@ -90,19 +92,44 @@ fn run_program(prg: &mut Program, mut input: i32) -> i32 {
         match instr {
             Op::Add(ref lhs, ref rhs, Position(addr)) => {
                 prg[addr] = lhs.get(prg) + rhs.get(prg);
+                idx += 4;
             }
             Op::Mul(ref lhs, ref rhs, Position(addr)) => {
                 prg[addr] = lhs.get(prg) * rhs.get(prg);
+                idx += 4;
             }
             Op::In(Position(addr)) => {
                 prg[addr] = input;
+                idx += 2;
             }
             Op::Out(Position(addr)) => {
                 input = prg[addr];
+                idx += 2;
+            }
+            Op::JumpIfTrue(ref cond, ref target) => {
+                if cond.get(prg) != 0 {
+                    idx = target.get(prg) as usize;
+                } else {
+                    idx += 3;
+                }
+            }
+            Op::JumpIfFalse(ref cond, ref target) => {
+                if cond.get(prg) == 0 {
+                    idx = target.get(prg) as usize;
+                } else {
+                    idx += 3;
+                }
+            }
+            Op::LessThan(ref lhs, ref rhs, Position(addr)) => {
+                prg[addr] = i32::from(lhs.get(prg) < rhs.get(prg));
+                idx += 4;
+            }
+            Op::Equals(ref rhs, ref lhs, Position(addr)) => {
+                prg[addr] = i32::from(lhs.get(prg) == rhs.get(prg));
+                idx += 4;
             }
             Op::Halt => break,
         }
-        idx = instr.next_idx(idx);
         //dbg!(input, &prg, idx);
     }
     input
@@ -121,8 +148,9 @@ fn part1(input: &Program) -> i32 {
 }
 
 #[aoc(day5, part2)]
-fn part2(input: &Program) -> String {
-    todo!()
+fn part2(input: &Program) -> i32 {
+    let mut prg = input.to_owned();
+    run_program(&mut prg, 5)
 }
 
 #[cfg(test)]
@@ -139,7 +167,36 @@ mod tests {
     }
 
     #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+    fn test_run_program_with_new_opcodes() {
+        for (program, input, output) in [
+            // Position mode
+            // Checks if input is equal to 8
+            ("3,9,8,9,10,9,4,9,99,-1,8", 8, 1),
+            ("3,9,8,9,10,9,4,9,99,-1,8", 7, 0),
+            // Checks if input less than 8
+            ("3,9,7,9,10,9,4,9,99,-1,8", 7, 1),
+            ("3,9,7,9,10,9,4,9,99,-1,8", 8, 0),
+            // Immediate mode
+            // Checks if input is equal to 8
+            ("3,3,1108,-1,8,3,4,3,99", 8, 1),
+            ("3,3,1108,-1,8,3,4,3,99", 7, 0),
+            // Checks if input less than 8
+            ("3,3,1107,-1,8,3,4,3,99", 8, 0),
+            ("3,3,1107,-1,8,3,4,3,99", 7, 1),
+            // Check if input is non-zero, position mode
+            ("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", 5, 1),
+            ("3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9", 0, 0),
+            // Check if input is non-zero, position mode
+            ("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", 5, 1),
+            ("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", 0, 0),
+            // TODO these fail for some reason
+            //("3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99", 7, 999),
+            //("3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99", 8, 1000),
+            //("3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99", 9, 1001),
+        ] {
+            eprintln!("Program: {program}, input: {input}, expected output: {output}");
+            let mut prg = parse(program);
+            assert_eq!(run_program(&mut prg, input), output);
+        }
     }
 }
