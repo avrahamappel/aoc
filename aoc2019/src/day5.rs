@@ -2,10 +2,10 @@
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-type Program = Vec<i32>;
+pub type Program = Vec<i32>;
 
 #[aoc_generator(day5)]
-fn parse(input: &str) -> Program {
+pub fn parse(input: &str) -> Program {
     input.split(',').map(|s| s.parse().unwrap()).collect()
 }
 
