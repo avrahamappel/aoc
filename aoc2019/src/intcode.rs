@@ -30,7 +30,7 @@ enum Op {
     Add(Mode, Mode, Position),
     Mul(Mode, Mode, Position),
     In(Position),
-    Out(Position),
+    Out(Mode),
     JumpIfTrue(Mode, Mode),
     JumpIfFalse(Mode, Mode),
     LessThan(Mode, Mode, Position),
@@ -64,7 +64,7 @@ impl Op {
             1 => Op::Add(mode0(), mode1(), Position::from(arg2())),
             2 => Op::Mul(mode0(), mode1(), Position::from(arg2())),
             3 => Op::In(Position::from(arg0())),
-            4 => Op::Out(Position::from(arg0())),
+            4 => Op::Out(mode0()),
             5 => Op::JumpIfTrue(mode0(), mode1()),
             6 => Op::JumpIfFalse(mode0(), mode1()),
             7 => Op::LessThan(mode0(), mode1(), Position::from(arg2())),
@@ -117,8 +117,8 @@ impl Intcode {
                         .expect("input did not contain enough values");
                     idx += 2;
                 }
-                Op::Out(Position(addr)) => {
-                    output.push(self.program[addr]);
+                Op::Out(arg) => {
+                    output.push(arg.get(self));
                     idx += 2;
                 }
                 Op::JumpIfTrue(ref cond, ref target) => {
