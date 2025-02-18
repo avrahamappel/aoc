@@ -75,6 +75,7 @@ impl Op {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum State {
     NeedsInput,
     Output(i32),
