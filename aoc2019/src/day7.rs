@@ -1,7 +1,7 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::Itertools;
 
-use crate::intcode::Intcode;
+use crate::intcode::{Intcode, State};
 
 type Input = Vec<i32>;
 
@@ -20,7 +20,15 @@ fn part1(input: &Input) -> i32 {
             let mut prg = Intcode::new(input.clone());
             // first setting then previous output or 0
             let inp = [setting, prev_output];
-            let output = prg.run(&inp)[0];
+            let mut output = 0;
+            for i in inp {
+                let state = prg.run(Some(i));
+                match state {
+                    State::Output(o) => output = o,
+                    State::Halted => break,
+                    State::NeedsInput => {}
+                }
+            }
             if output > max_output {
                 max_output = output;
             }

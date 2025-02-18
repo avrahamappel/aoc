@@ -75,9 +75,16 @@ impl Op {
     }
 }
 
+pub enum State {
+    NeedsInput,
+    Output(i32),
+    Halted,
+}
+
 #[derive(Clone)]
 pub struct Intcode {
     program: Vec<i32>,
+    idx: usize,
 }
 
 impl Index<usize> for Intcode {
@@ -90,63 +97,65 @@ impl Index<usize> for Intcode {
 
 impl Intcode {
     pub fn new(program: Vec<i32>) -> Self {
-        Self { program }
+        Self { program, idx: 0 }
     }
 
     /// Run an Intcode program
-    pub fn run(&mut self, input: &[i32]) -> Vec<i32> {
-        let mut idx = 0;
-        let mut input_iter = input.iter();
-        let mut output = vec![];
+    pub fn run(&mut self, mut input: Option<i32>) -> State {
+        if self.idx >= self.program.len() {
+            return State::Halted;
+        }
 
         loop {
-            let instr = Op::from_code(self, idx);
+            let instr = Op::from_code(self, self.idx);
             //dbg!(&instr);
             match instr {
                 Op::Add(ref lhs, ref rhs, Position(addr)) => {
                     self.program[addr] = lhs.get(self) + rhs.get(self);
-                    idx += 4;
+                    self.idx += 4;
                 }
                 Op::Mul(ref lhs, ref rhs, Position(addr)) => {
                     self.program[addr] = lhs.get(self) * rhs.get(self);
-                    idx += 4;
+                    self.idx += 4;
                 }
                 Op::In(Position(addr)) => {
-                    self.program[addr] = *input_iter
-                        .next()
-                        .expect("input did not contain enough values");
-                    idx += 2;
+                    if let Some(i) = input.take() {
+                        self.program[addr] = i;
+                        self.idx += 2;
+                    } else {
+                        return State::NeedsInput;
+                    }
                 }
                 Op::Out(arg) => {
-                    output.push(arg.get(self));
-                    idx += 2;
+                    let output = arg.get(self);
+                    self.idx += 2;
+                    return State::Output(output);
                 }
                 Op::JumpIfTrue(ref cond, ref target) => {
                     if cond.get(self) != 0 {
-                        idx = target.get(self) as usize;
+                        self.idx = target.get(self) as usize;
                     } else {
-                        idx += 3;
+                        self.idx += 3;
                     }
                 }
                 Op::JumpIfFalse(ref cond, ref target) => {
                     if cond.get(self) == 0 {
-                        idx = target.get(self) as usize;
+                        self.idx = target.get(self) as usize;
                     } else {
-                        idx += 3;
+                        self.idx += 3;
                     }
                 }
                 Op::LessThan(ref lhs, ref rhs, Position(addr)) => {
                     self.program[addr] = i32::from(lhs.get(self) < rhs.get(self));
-                    idx += 4;
+                    self.idx += 4;
                 }
                 Op::Equals(ref rhs, ref lhs, Position(addr)) => {
                     self.program[addr] = i32::from(lhs.get(self) == rhs.get(self));
-                    idx += 4;
+                    self.idx += 4;
                 }
-                Op::Halt => break,
+                Op::Halt => return State::Halted,
             }
             //dbg!(input, &self.program, idx);
         }
-        output
     }
 }
