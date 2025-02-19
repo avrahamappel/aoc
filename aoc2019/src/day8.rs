@@ -19,21 +19,27 @@ fn part1(input: &str) -> usize {
 }
 
 #[aoc(day8, part2)]
-fn part2(input: &str) -> String {
-    todo!()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    //#[test]
-    //fn part1_example() {
-    //    assert_eq!(part1(&parse("123456789012")), "<RESULT>");
-    //}
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+fn part2(input: &str) -> usize {
+    const AREA: usize = 25 * 6;
+    let layers = input.as_bytes().chunks(AREA).collect::<Vec<_>>();
+    let mut final_layer = [b'2'; AREA];
+    for i in 0..AREA {
+        for layer in &layers {
+            if layer[i] != b'2' {
+                final_layer[i] = layer[i];
+                break;
+            }
+        }
     }
+    let image = final_layer
+        .chunks(25)
+        .map(|row| {
+            row.iter()
+                .map(|c| if *c == b'1' { '█' } else { ' ' })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    println!("{image}");
+    0
 }
