@@ -15,12 +15,23 @@ impl Position {
 enum Mode {
     Position(Position),
     Immediate(i32),
+    Relative(i32),
 }
 impl Mode {
+    fn new(code: i32, arg: i32) -> Self {
+        match code {
+            0 => Mode::Position(Position::from(arg)),
+            1 => Mode::Immediate(arg),
+            2 => Mode::Relative(arg),
+            _ => unimplemented!(),
+        }
+    }
+
     fn get(&self, prg: &Intcode) -> i32 {
         match self {
             Mode::Position(position) => prg[position.0],
             Mode::Immediate(int) => *int,
+            Mode::Relative(int) => prg[(int + prg.relative_base) as usize],
         }
     }
 }
@@ -35,6 +46,7 @@ enum Op {
     JumpIfFalse(Mode, Mode),
     LessThan(Mode, Mode, Position),
     Equals(Mode, Mode, Position),
+    AdjRelativeBase(Mode),
     Halt,
 }
 
@@ -45,20 +57,8 @@ impl Op {
         let arg1 = || prg[idx + 2];
         let arg2 = || prg[idx + 3];
         let opcode = code % 100;
-        let mode0 = || {
-            if code / 100 % 10 == 0 {
-                Mode::Position(Position::from(arg0()))
-            } else {
-                Mode::Immediate(arg0())
-            }
-        };
-        let mode1 = || {
-            if code / 1000 % 10 == 0 {
-                Mode::Position(Position::from(arg1()))
-            } else {
-                Mode::Immediate(arg1())
-            }
-        };
+        let mode0 = || Mode::new(code / 100 % 10, arg0());
+        let mode1 = || Mode::new(code / 1000 % 10, arg1());
 
         match opcode {
             1 => Op::Add(mode0(), mode1(), Position::from(arg2())),
@@ -69,6 +69,7 @@ impl Op {
             6 => Op::JumpIfFalse(mode0(), mode1()),
             7 => Op::LessThan(mode0(), mode1(), Position::from(arg2())),
             8 => Op::Equals(mode0(), mode1(), Position::from(arg2())),
+            9 => Op::AdjRelativeBase(mode0()),
             99 => Op::Halt,
             _ => panic!("Invalid opcode"),
         }
@@ -86,6 +87,7 @@ pub enum State {
 pub struct Intcode {
     program: Vec<i32>,
     idx: usize,
+    relative_base: i32,
 }
 
 impl Index<usize> for Intcode {
@@ -98,15 +100,15 @@ impl Index<usize> for Intcode {
 
 impl Intcode {
     pub fn new(program: Vec<i32>) -> Self {
-        Self { program, idx: 0 }
+        Self {
+            program,
+            idx: 0,
+            relative_base: 0,
+        }
     }
 
     /// Run an Intcode program
     pub fn run(&mut self, mut input: Option<i32>) -> State {
-        if self.idx >= self.program.len() {
-            return State::Halted;
-        }
-
         loop {
             let instr = Op::from_code(self, self.idx);
             //dbg!(&instr);
@@ -153,6 +155,10 @@ impl Intcode {
                 Op::Equals(ref rhs, ref lhs, Position(addr)) => {
                     self.program[addr] = i32::from(lhs.get(self) == rhs.get(self));
                     self.idx += 4;
+                }
+                Op::AdjRelativeBase(ref arg) => {
+                    self.relative_base += arg.get(self);
+                    self.idx += 2;
                 }
                 Op::Halt => return State::Halted,
             }
