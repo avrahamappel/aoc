@@ -7,7 +7,7 @@ pub fn parse(input: &str) -> Intcode {
     Intcode::new(input.split(',').map(|s| s.parse().unwrap()).collect())
 }
 
-fn run_program(prg: &mut Intcode, input: i32) -> Option<i32> {
+fn run_program(prg: &mut Intcode, input: i64) -> Option<i64> {
     let mut output = None;
     loop {
         let state = prg.run(Some(input));
@@ -20,13 +20,13 @@ fn run_program(prg: &mut Intcode, input: i32) -> Option<i32> {
 }
 
 #[aoc(day5, part1)]
-fn part1(input: &Intcode) -> i32 {
+fn part1(input: &Intcode) -> i64 {
     let mut prg = input.to_owned();
     run_program(&mut prg, 1).unwrap()
 }
 
 #[aoc(day5, part2)]
-fn part2(input: &Intcode) -> i32 {
+fn part2(input: &Intcode) -> i64 {
     let mut prg = input.to_owned();
     run_program(&mut prg, 5).unwrap()
 }

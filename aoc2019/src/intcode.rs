@@ -1,12 +1,12 @@
 #![allow(clippy::cast_sign_loss)]
 
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug)]
 struct Position(usize);
 
 impl Position {
-    fn from(int: i32) -> Self {
+    fn from(int: i64) -> Self {
         Self(int as usize)
     }
 }
@@ -14,13 +14,24 @@ impl Position {
 #[derive(Debug)]
 enum Mode {
     Position(Position),
-    Immediate(i32),
+    Immediate(i64),
+    Relative(i64),
 }
 impl Mode {
-    fn get(&self, prg: &Intcode) -> i32 {
+    fn new(code: i64, arg: i64) -> Self {
+        match code {
+            0 => Mode::Position(Position::from(arg)),
+            1 => Mode::Immediate(arg),
+            2 => Mode::Relative(arg),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get(&self, prg: &Intcode) -> i64 {
         match self {
             Mode::Position(position) => prg[position.0],
             Mode::Immediate(int) => *int,
+            Mode::Relative(int) => prg[(int + prg.relative_base) as usize],
         }
     }
 }
@@ -35,6 +46,7 @@ enum Op {
     JumpIfFalse(Mode, Mode),
     LessThan(Mode, Mode, Position),
     Equals(Mode, Mode, Position),
+    AdjRelativeBase(Mode),
     Halt,
 }
 
@@ -45,20 +57,8 @@ impl Op {
         let arg1 = || prg[idx + 2];
         let arg2 = || prg[idx + 3];
         let opcode = code % 100;
-        let mode0 = || {
-            if code / 100 % 10 == 0 {
-                Mode::Position(Position::from(arg0()))
-            } else {
-                Mode::Immediate(arg0())
-            }
-        };
-        let mode1 = || {
-            if code / 1000 % 10 == 0 {
-                Mode::Position(Position::from(arg1()))
-            } else {
-                Mode::Immediate(arg1())
-            }
-        };
+        let mode0 = || Mode::new(code / 100 % 10, arg0());
+        let mode1 = || Mode::new(code / 1000 % 10, arg1());
 
         match opcode {
             1 => Op::Add(mode0(), mode1(), Position::from(arg2())),
@@ -69,6 +69,7 @@ impl Op {
             6 => Op::JumpIfFalse(mode0(), mode1()),
             7 => Op::LessThan(mode0(), mode1(), Position::from(arg2())),
             8 => Op::Equals(mode0(), mode1(), Position::from(arg2())),
+            9 => Op::AdjRelativeBase(mode0()),
             99 => Op::Halt,
             _ => panic!("Invalid opcode"),
         }
@@ -78,50 +79,65 @@ impl Op {
 #[derive(Clone, Copy)]
 pub enum State {
     NeedsInput,
-    Output(i32),
+    Output(i64),
     Halted,
 }
 
 #[derive(Clone)]
 pub struct Intcode {
-    program: Vec<i32>,
+    program: Vec<i64>,
     idx: usize,
+    relative_base: i64,
 }
 
 impl Index<usize> for Intcode {
-    type Output = i32;
+    type Output = i64;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.program[index]
+        if self.program.len() <= index {
+            &0
+        } else {
+            &self.program[index]
+        }
+    }
+}
+
+impl IndexMut<usize> for Intcode {
+    fn index_mut(&mut self, index: usize) -> &mut i64 {
+        if self.program.len() <= index {
+            self.program.resize(index + 1, 0);
+        }
+
+        &mut self.program[index]
     }
 }
 
 impl Intcode {
-    pub fn new(program: Vec<i32>) -> Self {
-        Self { program, idx: 0 }
+    pub fn new(program: Vec<i64>) -> Self {
+        Self {
+            program,
+            idx: 0,
+            relative_base: 0,
+        }
     }
 
     /// Run an Intcode program
-    pub fn run(&mut self, mut input: Option<i32>) -> State {
-        if self.idx >= self.program.len() {
-            return State::Halted;
-        }
-
+    pub fn run(&mut self, mut input: Option<i64>) -> State {
         loop {
             let instr = Op::from_code(self, self.idx);
             //dbg!(&instr);
             match instr {
                 Op::Add(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = lhs.get(self) + rhs.get(self);
+                    self[addr] = lhs.get(self) + rhs.get(self);
                     self.idx += 4;
                 }
                 Op::Mul(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = lhs.get(self) * rhs.get(self);
+                    self[addr] = lhs.get(self) * rhs.get(self);
                     self.idx += 4;
                 }
                 Op::In(Position(addr)) => {
                     if let Some(i) = input.take() {
-                        self.program[addr] = i;
+                        self[addr] = i;
                         self.idx += 2;
                     } else {
                         return State::NeedsInput;
@@ -147,12 +163,16 @@ impl Intcode {
                     }
                 }
                 Op::LessThan(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = i32::from(lhs.get(self) < rhs.get(self));
+                    self[addr] = i64::from(lhs.get(self) < rhs.get(self));
                     self.idx += 4;
                 }
                 Op::Equals(ref rhs, ref lhs, Position(addr)) => {
-                    self.program[addr] = i32::from(lhs.get(self) == rhs.get(self));
+                    self[addr] = i64::from(lhs.get(self) == rhs.get(self));
                     self.idx += 4;
+                }
+                Op::AdjRelativeBase(ref arg) => {
+                    self.relative_base += arg.get(self);
+                    self.idx += 2;
                 }
                 Op::Halt => return State::Halted,
             }
