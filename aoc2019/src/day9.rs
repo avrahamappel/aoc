@@ -24,8 +24,8 @@ fn run_program(program: Input, input: Option<i64>) -> Vec<i64> {
 
 #[aoc(day9, part1)]
 fn part1(input: &Input) -> String {
-    //let prg = Intcode::new(input.to_owned());
-    todo!()
+    let output = run_program(input.to_owned(), Some(1));
+    output.jo
 }
 
 #[aoc(day9, part2)]
