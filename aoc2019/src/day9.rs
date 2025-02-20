@@ -22,8 +22,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn part1_example() {
-        assert_eq!(part1(&parse("<EXAMPLE>")), "<RESULT>");
+    fn test_intcode_v4() {
+        for (program, input, output) in [
+            (
+                "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99",
+                None,
+                vec![
+                    109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+                ],
+            ),
+            (
+                "1102,34915192,34915192,7,4,7,99,0",
+                None,
+                vec![1219070632396864],
+            ),
+        ] {
+            eprintln!("Program: {program}, input: {input:?}");
+            assert_eq!(output, run_program(parse(program), input));
+        }
     }
 
     #[test]

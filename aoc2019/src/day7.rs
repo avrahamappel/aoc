@@ -9,7 +9,7 @@ use itertools::Itertools;
 
 use crate::intcode::{Intcode, State};
 
-type Input = Vec<i32>;
+type Input = Vec<i64>;
 
 #[aoc_generator(day7)]
 fn parse(input: &str) -> Input {
@@ -17,7 +17,7 @@ fn parse(input: &str) -> Input {
 }
 
 #[aoc(day7, part1)]
-fn part1(input: &Input) -> i32 {
+fn part1(input: &Input) -> i64 {
     let mut max_output = 0;
     for permutation in (0..=4).permutations(5) {
         let mut prev_output = 0;
@@ -47,12 +47,12 @@ fn part1(input: &Input) -> i32 {
 struct Amplifier {
     software: Intcode,
     state: State,
-    input: VecDeque<i32>,
+    input: VecDeque<i64>,
     output: Weak<RefCell<Self>>,
 }
 
 impl Amplifier {
-    fn new(mut software: Intcode, setting: i32) -> Self {
+    fn new(mut software: Intcode, setting: i64) -> Self {
         let state = software.run(Some(setting));
         Self {
             software,
@@ -66,17 +66,17 @@ impl Amplifier {
         self.output = output;
     }
 
-    fn add_input(&mut self, input: i32) {
+    fn add_input(&mut self, input: i64) {
         self.input.push_back(input);
     }
 
-    fn push_to_output(&self, output: i32) {
+    fn push_to_output(&self, output: i64) {
         if let Some(amp) = self.output.upgrade() {
             amp.borrow_mut().add_input(output);
         }
     }
 
-    fn run(&mut self) -> Option<i32> {
+    fn run(&mut self) -> Option<i64> {
         let mut output = None;
         loop {
             let state = self.software.run(self.input.pop_front());
@@ -94,7 +94,7 @@ impl Amplifier {
 }
 
 #[aoc(day7, part2)]
-fn part2(input: &Input) -> i32 {
+fn part2(input: &Input) -> i64 {
     let mut max_output = 0;
     for permutation in (5..=9).permutations(5) {
         let software = Intcode::new(input.clone());
