@@ -1,6 +1,6 @@
 #![allow(clippy::cast_sign_loss)]
 
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug)]
 struct Position(usize);
@@ -94,7 +94,21 @@ impl Index<usize> for Intcode {
     type Output = i32;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.program[index]
+        if self.program.len() <= index {
+            &0
+        } else {
+            &self.program[index]
+        }
+    }
+}
+
+impl IndexMut<usize> for Intcode {
+    fn index_mut(&mut self, index: usize) -> &mut i32 {
+        if self.program.len() <= index {
+            self.program.resize(index + 1, 0);
+        }
+
+        &mut self.program[index]
     }
 }
 
@@ -114,16 +128,16 @@ impl Intcode {
             //dbg!(&instr);
             match instr {
                 Op::Add(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = lhs.get(self) + rhs.get(self);
+                    self[addr] = lhs.get(self) + rhs.get(self);
                     self.idx += 4;
                 }
                 Op::Mul(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = lhs.get(self) * rhs.get(self);
+                    self[addr] = lhs.get(self) * rhs.get(self);
                     self.idx += 4;
                 }
                 Op::In(Position(addr)) => {
                     if let Some(i) = input.take() {
-                        self.program[addr] = i;
+                        self[addr] = i;
                         self.idx += 2;
                     } else {
                         return State::NeedsInput;
@@ -149,11 +163,11 @@ impl Intcode {
                     }
                 }
                 Op::LessThan(ref lhs, ref rhs, Position(addr)) => {
-                    self.program[addr] = i32::from(lhs.get(self) < rhs.get(self));
+                    self[addr] = i32::from(lhs.get(self) < rhs.get(self));
                     self.idx += 4;
                 }
                 Op::Equals(ref rhs, ref lhs, Position(addr)) => {
-                    self.program[addr] = i32::from(lhs.get(self) == rhs.get(self));
+                    self[addr] = i32::from(lhs.get(self) == rhs.get(self));
                     self.idx += 4;
                 }
                 Op::AdjRelativeBase(ref arg) => {
