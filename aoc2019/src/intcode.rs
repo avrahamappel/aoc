@@ -1,5 +1,6 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::must_use_candidate)]
 
 use std::{
     fmt::{Display, Formatter},
@@ -7,17 +8,8 @@ use std::{
 };
 
 #[derive(Debug)]
-struct Position(usize);
-
-impl Position {
-    fn from(int: i64) -> Self {
-        Self(int as usize)
-    }
-}
-
-#[derive(Debug)]
 enum Mode {
-    Position(Position),
+    Position(i64),
     Immediate(i64),
     Relative(i64),
 }
@@ -25,7 +17,7 @@ enum Mode {
 impl Display for Mode {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            Mode::Position(Position(addr)) => write!(f, "${addr}")?,
+            Mode::Position(addr) => write!(f, "${addr}")?,
             Mode::Immediate(int) => write!(f, "{int}")?,
             Mode::Relative(int) => {
                 if int.is_positive() {
@@ -42,32 +34,24 @@ impl Display for Mode {
 impl Mode {
     fn new(code: i64, arg: i64) -> Self {
         match code {
-            0 => Mode::Position(Position::from(arg)),
+            0 => Mode::Position(arg),
             1 => Mode::Immediate(arg),
             2 => Mode::Relative(arg),
             _ => unimplemented!(),
-        }
-    }
-
-    fn get(&self, prg: &Intcode) -> i64 {
-        match self {
-            Mode::Position(position) => prg[position.0],
-            Mode::Immediate(int) => *int,
-            Mode::Relative(int) => prg[(int + prg.relative_base) as usize],
         }
     }
 }
 
 #[derive(Debug)]
 enum Op {
-    Add(Mode, Mode, Position),
-    Mul(Mode, Mode, Position),
-    In(Position),
+    Add(Mode, Mode, Mode),
+    Mul(Mode, Mode, Mode),
+    In(Mode),
     Out(Mode),
     JumpIfTrue(Mode, Mode),
     JumpIfFalse(Mode, Mode),
-    LessThan(Mode, Mode, Position),
-    Equals(Mode, Mode, Position),
+    LessThan(Mode, Mode, Mode),
+    Equals(Mode, Mode, Mode),
     AdjRelativeBase(Mode),
     Halt,
 }
@@ -81,16 +65,17 @@ impl Op {
         let opcode = code % 100;
         let mode0 = || Mode::new(code / 100 % 10, arg0());
         let mode1 = || Mode::new(code / 1000 % 10, arg1());
+        let mode2 = || Mode::new(code / 10000 % 10, arg2());
 
         match opcode {
-            1 => Op::Add(mode0(), mode1(), Position::from(arg2())),
-            2 => Op::Mul(mode0(), mode1(), Position::from(arg2())),
-            3 => Op::In(Position::from(arg0())),
+            1 => Op::Add(mode0(), mode1(), mode2()),
+            2 => Op::Mul(mode0(), mode1(), mode2()),
+            3 => Op::In(mode0()),
             4 => Op::Out(mode0()),
             5 => Op::JumpIfTrue(mode0(), mode1()),
             6 => Op::JumpIfFalse(mode0(), mode1()),
-            7 => Op::LessThan(mode0(), mode1(), Position::from(arg2())),
-            8 => Op::Equals(mode0(), mode1(), Position::from(arg2())),
+            7 => Op::LessThan(mode0(), mode1(), mode2()),
+            8 => Op::Equals(mode0(), mode1(), mode2()),
             9 => Op::AdjRelativeBase(mode0()),
             99 => Op::Halt,
             _ => {
@@ -113,6 +98,31 @@ pub struct Intcode {
     program: Vec<i64>,
     idx: usize,
     relative_base: i64,
+}
+
+impl Index<Mode> for Intcode {
+    type Output = i64;
+
+    fn index(&self, index: Mode) -> &i64 {
+        match index {
+            Mode::Position(addr) => &self[addr as usize],
+            Mode::Immediate(_) => unimplemented!(),
+            Mode::Relative(int) => &self[(int + self.relative_base) as usize],
+        }
+    }
+}
+
+impl IndexMut<Mode> for Intcode {
+    fn index_mut(&mut self, index: Mode) -> &mut i64 {
+        match index {
+            Mode::Position(addr) => &mut self[addr as usize],
+            Mode::Immediate(_) => unimplemented!(),
+            Mode::Relative(int) => {
+                let rb = self.relative_base;
+                &mut self[(int + rb) as usize]
+            }
+        }
+    }
 }
 
 impl Index<usize> for Intcode {
@@ -146,21 +156,30 @@ impl Intcode {
         }
     }
 
+    // Get a value from a mode
+    fn get(&self, mode: Mode) -> i64 {
+        if let Mode::Immediate(int) = mode {
+            int
+        } else {
+            self[mode]
+        }
+    }
+
     /// Run an Intcode program
     pub fn run(&mut self, mut input: Option<i64>) -> State {
         loop {
             let instr = Op::from_code(self, self.idx);
             //dbg!(&instr);
             match instr {
-                Op::Add(ref lhs, ref rhs, Position(addr)) => {
-                    self[addr] = lhs.get(self) + rhs.get(self);
+                Op::Add(lhs, rhs, addr) => {
+                    self[addr] = self.get(lhs) + self.get(rhs);
                     self.idx += 4;
                 }
-                Op::Mul(ref lhs, ref rhs, Position(addr)) => {
-                    self[addr] = lhs.get(self) * rhs.get(self);
+                Op::Mul(lhs, rhs, addr) => {
+                    self[addr] = self.get(lhs) * self.get(rhs);
                     self.idx += 4;
                 }
-                Op::In(Position(addr)) => {
+                Op::In(addr) => {
                     if let Some(i) = input.take() {
                         self[addr] = i;
                         self.idx += 2;
@@ -168,35 +187,35 @@ impl Intcode {
                         return State::NeedsInput;
                     }
                 }
-                Op::Out(arg) => {
-                    let output = arg.get(self);
+                Op::Out(addr) => {
+                    let output = self.get(addr);
                     self.idx += 2;
                     return State::Output(output);
                 }
-                Op::JumpIfTrue(ref cond, ref target) => {
-                    if cond.get(self) != 0 {
-                        self.idx = target.get(self) as usize;
+                Op::JumpIfTrue(cond, target) => {
+                    if self.get(cond) != 0 {
+                        self.idx = self.get(target) as usize;
                     } else {
                         self.idx += 3;
                     }
                 }
-                Op::JumpIfFalse(ref cond, ref target) => {
-                    if cond.get(self) == 0 {
-                        self.idx = target.get(self) as usize;
+                Op::JumpIfFalse(cond, target) => {
+                    if self.get(cond) == 0 {
+                        self.idx = self.get(target) as usize;
                     } else {
                         self.idx += 3;
                     }
                 }
-                Op::LessThan(ref lhs, ref rhs, Position(addr)) => {
-                    self[addr] = i64::from(lhs.get(self) < rhs.get(self));
+                Op::LessThan(lhs, rhs, addr) => {
+                    self[addr] = i64::from(self.get(lhs) < self.get(rhs));
                     self.idx += 4;
                 }
-                Op::Equals(ref rhs, ref lhs, Position(addr)) => {
-                    self[addr] = i64::from(lhs.get(self) == rhs.get(self));
+                Op::Equals(rhs, lhs, addr) => {
+                    self[addr] = i64::from(self.get(lhs) == self.get(rhs));
                     self.idx += 4;
                 }
-                Op::AdjRelativeBase(ref arg) => {
-                    self.relative_base += arg.get(self);
+                Op::AdjRelativeBase(arg) => {
+                    self.relative_base += self.get(arg);
                     self.idx += 2;
                 }
                 Op::Halt => return State::Halted,
@@ -229,16 +248,16 @@ impl Intcode {
             } else {
                 let op = Op::from_code(self, idx);
                 match op {
-                    Op::Add(lhs, rhs, Position(addr)) => {
+                    Op::Add(lhs, rhs, addr) => {
                         display.push_str(&format!("{addr} = {lhs} + {rhs}"));
                         parsing_arguments = 3;
                     }
-                    Op::Mul(lhs, rhs, Position(addr)) => {
+                    Op::Mul(lhs, rhs, addr) => {
                         display.push_str(&format!("{addr} = {lhs} * {rhs}"));
                         parsing_arguments = 3;
                     }
-                    Op::In(Position(addr)) => {
-                        display.push_str(&format!("{addr} = stdin"));
+                    Op::In(arg) => {
+                        display.push_str(&format!("{arg} = stdin"));
                         parsing_arguments = 1;
                     }
                     Op::Out(arg) => {
@@ -253,11 +272,11 @@ impl Intcode {
                         display.push_str(&format!("if !{arg} goto {target}"));
                         parsing_arguments = 2;
                     }
-                    Op::LessThan(lhs, rhs, Position(addr)) => {
+                    Op::LessThan(lhs, rhs, addr) => {
                         display.push_str(&format!("{addr} = {lhs} < {rhs}"));
                         parsing_arguments = 3;
                     }
-                    Op::Equals(lhs, rhs, Position(addr)) => {
+                    Op::Equals(lhs, rhs, addr) => {
                         display.push_str(&format!("{addr} = {lhs} == {rhs}"));
                         parsing_arguments = 3;
                     }
