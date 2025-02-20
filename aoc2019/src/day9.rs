@@ -23,9 +23,10 @@ fn run_program(program: Input, input: Option<i64>) -> Vec<i64> {
 }
 
 #[aoc(day9, part1)]
-fn part1(input: &Input) -> String {
+fn part1(input: &Input) -> i64 {
     let output = run_program(input.to_owned(), Some(1));
-    output.jo
+    println!("{output:?}");
+    output[0]
 }
 
 #[aoc(day9, part2)]
