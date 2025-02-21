@@ -1,6 +1,10 @@
 #![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_truncation)]
 
-use std::ops::{Index, IndexMut};
+use std::{
+    fmt::{Display, Formatter},
+    ops::{Index, IndexMut},
+};
 
 #[derive(Debug)]
 struct Position(usize);
@@ -17,6 +21,24 @@ enum Mode {
     Immediate(i64),
     Relative(i64),
 }
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Mode::Position(Position(addr)) => write!(f, "${addr}")?,
+            Mode::Immediate(int) => write!(f, "{int}")?,
+            Mode::Relative(int) => {
+                if int.is_positive() {
+                    write!(f, "${{CRB + {int}}}")?;
+                } else {
+                    write!(f, "${{CRB - {}}}", int.abs())?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Mode {
     fn new(code: i64, arg: i64) -> Self {
         match code {
@@ -71,7 +93,10 @@ impl Op {
             8 => Op::Equals(mode0(), mode1(), Position::from(arg2())),
             9 => Op::AdjRelativeBase(mode0()),
             99 => Op::Halt,
-            _ => panic!("Invalid opcode"),
+            _ => {
+                //dbg!(opcode);
+                panic!("Invalid opcode")
+            }
         }
     }
 }
@@ -178,5 +203,77 @@ impl Intcode {
             }
             //dbg!(input, &self.program, idx);
         }
+    }
+
+    pub fn disassemble(&self) -> String {
+        let mut idx = 0;
+        let mut lines = vec![];
+        let mut parsing_arguments = 0;
+
+        let longest_idx = self.program.len().to_string().len();
+        let longest_opc = self.program.iter().max().unwrap_or(&0).to_string().len();
+
+        while idx < self.program.len() {
+            //dbg!(&lines);
+            let mut display = format!(
+                "{idx:ln1$}:  {code:ln2$}  ",
+                ln1 = longest_idx,
+                ln2 = longest_opc,
+                code = self.program[idx]
+            );
+
+            if parsing_arguments > 0 {
+                parsing_arguments -= 1;
+            } else if self.program[idx] == 0 {
+                display.push_str("mem");
+            } else {
+                let op = Op::from_code(self, idx);
+                match op {
+                    Op::Add(lhs, rhs, Position(addr)) => {
+                        display.push_str(&format!("{addr} = {lhs} + {rhs}"));
+                        parsing_arguments = 3;
+                    }
+                    Op::Mul(lhs, rhs, Position(addr)) => {
+                        display.push_str(&format!("{addr} = {lhs} * {rhs}"));
+                        parsing_arguments = 3;
+                    }
+                    Op::In(Position(addr)) => {
+                        display.push_str(&format!("{addr} = stdin"));
+                        parsing_arguments = 1;
+                    }
+                    Op::Out(arg) => {
+                        display.push_str(&format!("print {arg}"));
+                        parsing_arguments = 1;
+                    }
+                    Op::JumpIfTrue(arg, target) => {
+                        display.push_str(&format!("if {arg} goto {target}"));
+                        parsing_arguments = 2;
+                    }
+                    Op::JumpIfFalse(arg, target) => {
+                        display.push_str(&format!("if !{arg} goto {target}"));
+                        parsing_arguments = 2;
+                    }
+                    Op::LessThan(lhs, rhs, Position(addr)) => {
+                        display.push_str(&format!("{addr} = {lhs} < {rhs}"));
+                        parsing_arguments = 3;
+                    }
+                    Op::Equals(lhs, rhs, Position(addr)) => {
+                        display.push_str(&format!("{addr} = {lhs} == {rhs}"));
+                        parsing_arguments = 3;
+                    }
+                    Op::AdjRelativeBase(arg) => {
+                        display.push_str(&format!("CRB += {arg}"));
+                        parsing_arguments = 1;
+                    }
+                    Op::Halt => {
+                        display.push_str("exit");
+                    }
+                }
+            }
+            lines.push(display);
+            idx += 1;
+        }
+
+        lines.join("\n")
     }
 }
