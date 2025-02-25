@@ -30,8 +30,10 @@ fn part1(input: &Input) -> i64 {
 }
 
 #[aoc(day9, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> i64 {
+    let output = run_program(input.to_owned(), Some(2));
+    println!("{output:?}");
+    output[0]
 }
 
 #[cfg(test)]
@@ -56,10 +58,5 @@ mod tests {
             eprintln!("Program: {program}");
             assert_eq!(output, run_program(parse(program), None));
         }
-    }
-
-    #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
     }
 }
